@@ -8,13 +8,6 @@
     "package": "agent-framework-azure-ai"
   },
   {
-    "name": "aspire-ts",
-    "description": "Orchestrate JavaScript/TypeScript applications with .NET Aspire. Use when building Node.js APIs, React/Vue/Svelte frontends, or Vite apps that need service discovery, telemetry, and deployment orchestration via Aspire's AppHost. Covers AddViteApp, AddNodeApp, AddJavaScriptApp, package managers, OpenTelemetry, and polyglot integration patterns.",
-    "lang": "ts",
-    "category": "general",
-    "path": ".github/skills/aspire-ts"
-  },
-  {
     "name": "agents-v2-py",
     "description": "Build container-based Foundry Agents using Azure AI Projects SDK with ImageBasedHostedAgentDefinition.\nUse when creating hosted agents that run custom code in Azure AI Foundry with your own container images.\nTriggers: \"ImageBasedHostedAgentDefinition\", \"hosted agent\", \"container agent\", \"Foundry Agent\",\n\"create_version\", \"ProtocolVersionRecord\", \"AgentProtocol.RESPONSES\", \"custom agent image\".\n",
     "lang": "py",
@@ -938,6 +931,13 @@
     "package": "@azure/web-pubsub, @azure/web-pubsub-client"
   },
   {
+    "name": "continual-learning",
+    "description": "Guide for implementing continual learning in AI coding agents — hooks, memory files, reflection patterns, and session persistence. Use when setting up learning infrastructure for agents.",
+    "lang": "core",
+    "category": "general",
+    "path": ".github/skills/continual-learning"
+  },
+  {
     "name": "copilot-sdk",
     "description": "Build applications powered by GitHub Copilot using the Copilot SDK. Use when creating programmatic integrations with Copilot across Node.js/TypeScript, Python, Go, or .NET. Covers session management, custom tools, streaming, hooks, MCP servers, BYOK providers, session persistence, custom agents, skills, and deployment patterns. Requires GitHub Copilot CLI installed and a GitHub Copilot subscription (unless using BYOK).",
     "lang": "core",
@@ -950,6 +950,13 @@
     "lang": "py",
     "category": "general",
     "path": ".github/plugins/azure-sdk-python/skills/fastapi-router-py"
+  },
+  {
+    "name": "frontend-design-review",
+    "description": "Review and create distinctive, production-grade frontend interfaces with high design quality and design system compliance. Evaluates using three pillars: frictionless insight-to-action, quality craft, and trustworthy building. USE FOR: PR reviews, design reviews, accessibility audits, design system compliance checks, creative frontend design, UI code review, component reviews, responsive design checks, theme testing, and creating memorable UI. DO NOT USE FOR: Backend API reviews, database schema reviews, infrastructure or DevOps work, pure business logic without UI, or non-frontend code.\n",
+    "lang": "core",
+    "category": "general",
+    "path": ".github/skills/frontend-design-review"
   },
   {
     "name": "frontend-ui-dark-ts",

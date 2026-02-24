@@ -3,9 +3,11 @@ import Layout from '../layouts/Layout.astro';
 import { SkillsSection } from '../components/SkillsSection';
 import AgentChip from '../components/AgentChip.astro';
 import MCPChip from '../components/MCPChip.astro';
+import HookCard from '../components/HookCard.astro';
 import skills from '../data/skills.json';
 import agents from '../data/agents.json';
 import mcpServers from '../data/mcp-servers.json';
+import hooks from '../data/hooks.json';
 ---
 
 <Layout>
@@ -160,6 +162,29 @@ import mcpServers from '../data/mcp-servers.json';
         </div>
       </div>
     </dialog>
+
+    <!-- Hooks Section -->
+    <section id="hooks" class="section">
+      <h2 class="section-title">
+        <span class="section-dot"></span>
+        Hooks
+      </h2>
+      <p class="section-subtitle">Lifecycle hooks for coding agent sessions — install by copying to <code>.github/hooks/</code> in your repo</p>
+      <div class="hooks-grid">
+        {hooks.map((hook) => (
+          <HookCard
+            id={hook.id}
+            name={hook.name}
+            emoji={hook.emoji}
+            description={hook.description}
+            featured={hook.featured}
+            tags={hook.tags}
+            path={hook.path}
+          />
+        ))}
+      </div>
+      <p class="hooks-more">More hooks available in <a href="https://github.com/github/awesome-copilot/tree/main/hooks" target="_blank" rel="noopener">awesome-copilot<svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg></a></p>
+    </section>
 
     <!-- MCP & Agents Section - Compact -->
     <section id="agents-mcp" class="section section-compact">
@@ -377,6 +402,66 @@ import mcpServers from '../data/mcp-servers.json';
     .plugins-grid {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* Hooks Section */
+  .section-subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: calc(-1 * var(--space-md)) 0 var(--space-lg) 0;
+    line-height: 1.5;
+  }
+
+  .section-subtitle code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: var(--text-xs);
+    color: var(--accent);
+    background: rgba(6, 182, 212, 0.08);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  .hooks-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+  }
+
+  @media (max-width: 1024px) {
+    .hooks-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hooks-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .hooks-more {
+    margin-top: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .hooks-more a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color var(--transition-fast);
+  }
+
+  .hooks-more a:hover {
+    color: var(--accent);
+  }
+
+  .hooks-more .external-icon {
+    width: 12px;
+    height: 12px;
   }
 
   .doc-card {

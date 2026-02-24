@@ -301,3 +301,6 @@ temp/
 # AI Agent Working Files
 # =============================================================================
 .sisyphus/
+# Astro build artifacts
+docs/data-store.json
+docs/settings.json
