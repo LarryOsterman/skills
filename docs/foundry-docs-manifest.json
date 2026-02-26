@@ -490,11 +490,6 @@
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/dall-e?view=foundry"
       },
       {
-        "title": "Image generation quickstart",
-        "href": "openai/dall-e-quickstart",
-        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/dall-e-quickstart?view=foundry"
-      },
-      {
         "title": "Video generation",
         "href": "openai/concepts/video-generation",
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/concepts/video-generation?view=foundry"
@@ -516,8 +511,8 @@
       },
       {
         "title": "Realtime API for speech and audio quickstart",
-        "href": "openai/realtime-audio-quickstart",
-        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/realtime-audio-quickstart?view=foundry"
+        "href": "openai/how-to/realtime-audio#quickstart",
+        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/realtime-audio#quickstart?view=foundry"
       },
       {
         "title": "Realtime API via WebRTC",
@@ -646,8 +641,8 @@
       },
       {
         "title": "Vision-enabled chats",
-        "href": "openai/gpt-v-quickstart",
-        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/gpt-v-quickstart?view=foundry"
+        "href": "openai/how-to/gpt-with-vision",
+        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/gpt-with-vision?view=foundry"
       },
       {
         "title": "Image prompt engineering techniques",
@@ -848,6 +843,11 @@
         "title": "Azure OpenAI quotas and limits",
         "href": "openai/quotas-limits",
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/quotas-limits?view=foundry"
+      },
+      {
+        "title": "Azure OpenAI model retirement",
+        "href": "openai/concepts/model-retirements",
+        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/concepts/model-retirements?view=foundry"
       }
     ],
     "Observability & Evaluation": [
@@ -1006,6 +1006,11 @@
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/how-to/monitor-models?view=foundry"
       },
       {
+        "title": "Configure Claude Code with Microsoft Foundry",
+        "href": "foundry-models/how-to/configure-claude-code",
+        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/how-to/configure-claude-code?view=foundry"
+      },
+      {
         "title": "Endpoints for Foundry Models",
         "href": "foundry-models/concepts/endpoints",
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/endpoints?view=foundry"
@@ -1083,16 +1088,6 @@
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/ai-template-get-started?view=foundry"
       },
       {
-        "title": "Use the Visual Studio Code extension for agent development",
-        "href": "how-to/develop/vs-code-agents",
-        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/vs-code-agents?view=foundry"
-      },
-      {
-        "title": "Use MCP Tools in the Visual Studio Code extension",
-        "href": "how-to/develop/vs-code-agents-mcp",
-        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/vs-code-agents-mcp?view=foundry"
-      },
-      {
         "title": "Microsoft Foundry SDKs",
         "href": "how-to/develop/sdk-overview",
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/sdk-overview?view=foundry"
@@ -1141,6 +1136,11 @@
         "title": "Manage quotas for Foundry resources",
         "href": "how-to/quota",
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/quota?view=foundry"
+      },
+      {
+        "title": "Hide preview features with Azure tags",
+        "href": "how-to/disable-preview-features",
+        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/disable-preview-features?view=foundry"
       },
       {
         "title": "Configure private link",
@@ -1345,6 +1345,11 @@
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/guardrails/how-to-create-guardrails?view=foundry"
       },
       {
+        "title": "Third party Guardrail integrations",
+        "href": "guardrails/third-party-integrations",
+        "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/guardrails/third-party-integrations?view=foundry"
+      },
+      {
         "title": "Intervention points",
         "href": "guardrails/intervention-points",
         "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/guardrails/intervention-points?view=foundry"
@@ -1398,6 +1403,6 @@
       }
     ]
   },
-  "total_pages": 272,
-  "generated_at": "2026-02-24T03:56:09Z"
+  "total_pages": 273,
+  "generated_at": "2026-02-26T03:55:41Z"
 }
