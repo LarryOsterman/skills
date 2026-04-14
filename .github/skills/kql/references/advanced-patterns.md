@@ -2,6 +2,9 @@
 
 Reference for specialized KQL features: graph queries, vector similarity, geospatial operations, time series, and external data. Consult this when a task requires these capabilities.
 
+> **Try it yourself**: Examples marked with `// try it!` can be run on the public help cluster:
+> `https://help.kusto.windows.net`, database `Samples`.
+
 ## Table of Contents
 
 1. [Graph Queries](#1-graph-queries)
@@ -75,24 +78,23 @@ Use `.create-or-alter graph_model` to define the schema and how nodes/edges are 
 For one-time analysis, use the `make-graph` operator to build a transient graph inline:
 
 ```kql
-let nodes = YaccApplications | project NodeId = AppId, AppName, HostingIp;
-let edges = YaccConnections | project SourceId = SourceAppId, TargetId = TargetAppId, Protocol, Port;
-
-edges
-| make-graph SourceId --> TargetId with nodes on NodeId
+// try it! — uses SimpleGraph_Nodes and SimpleGraph_Edges from help cluster
+SimpleGraph_Edges
+| make-graph source --> target with SimpleGraph_Nodes on id
 | graph-match (src)-[e]->(dst)
-  where src.AppName == "Gateway"
-  project src.AppName, dst.AppName, e.Protocol
+  where src.name == "Alice"
+  project src.name, dst.name, e.lbl
 ```
 
 ### Variable-length traversal
 
 ```kql
-// Find all paths up to 5 hops from a start node
-graph("YaccNetwork")
+// try it! — find all paths up to 5 hops from Alice
+SimpleGraph_Edges
+| make-graph source --> target with SimpleGraph_Nodes on id
 | graph-match (start)-[path*1..5]->(target)
-  where start.AppName == "Frontend"
-  project start.AppName, target.AppName, hops = array_length(path)
+  where start.name == "Alice"
+  project start.name, target.name, hops = array_length(path)
 ```
 
 ### Pre-filtering edges (the key pattern)
@@ -248,11 +250,17 @@ Note: `geo_point_in_polygon` is a **scalar function**, not a plugin. It works on
 ### Distance calculations
 
 ```kql
-// Distance between two points (returns meters)
-| extend distance_m = geo_distance_2points(Lon1, Lat1, Lon2, Lat2)
+// try it! — distance between start and end points of storm events (meters)
+StormEvents
+| where isnotempty(BeginLat) and isnotempty(EndLat)
+| extend distance_m = geo_distance_2points(BeginLon, BeginLat, EndLon, EndLat)
+| project EventType, State, distance_m
+| top 5 by distance_m desc
 
-// Filter by distance
-| where geo_distance_2points(Lon, Lat, -122.33, 47.61) < 5000  // within 5km of Seattle
+// Filter by distance — storms within 50km of Houston (-95.37, 29.76)
+StormEvents
+| where geo_distance_2points(BeginLon, BeginLat, -95.37, 29.76) < 50000
+| summarize count() by EventType
 ```
 
 ### Spatial bucketing for joins
@@ -260,16 +268,17 @@ Note: `geo_point_in_polygon` is a **scalar function**, not a plugin. It works on
 KQL joins are equality-only, so spatial proximity joins need pre-bucketing:
 
 ```kql
-// S2 cells (Google's spatial index)
-| extend cell = geo_point_to_s2cell(Longitude, Latitude, 8)  // level 8 ≈ 30km²
+// try it! — S2 cells on storm events
+StormEvents
+| extend cell = geo_point_to_s2cell(BeginLon, BeginLat, 8)
+| summarize count() by cell
+| top 10 by count_ desc
 
-// H3 cells (Uber's spatial index)
-| extend cell = geo_point_to_h3cell(Longitude, Latitude, 5)  // resolution 5 ≈ 253km²
-
-// Then join on cell IDs
-TableA
-| extend cell = geo_point_to_s2cell(Lon, Lat, 10)
-| join kind=inner (TableB | extend cell = geo_point_to_s2cell(Lon, Lat, 10)) on cell
+// Then join on cell IDs (e.g., storm events near taxi pickups)
+StormEvents
+| extend cell = geo_point_to_s2cell(BeginLon, BeginLat, 5)
+| join kind=inner (nyc_taxi | extend cell = geo_point_to_s2cell(pickup_longitude, pickup_latitude, 5)) on cell
+| take 10
 ```
 
 ### IP geolocation
@@ -292,25 +301,27 @@ TableA
 ### Creating time series
 
 ```kql
-// Basic time series
-Events
-| make-series count() default=0 on Timestamp step 1h
+// try it! — basic time series from storm events
+StormEvents
+| make-series count() default=0 on StartTime step 1d
 | render timechart
 
-// Multi-series (one per category)
-Events
-| make-series count() default=0 on Timestamp step 1h by Category
+// Multi-series (one per event type)
+StormEvents
+| make-series count() default=0 on StartTime step 1d by EventType
+| take 5
 ```
 
 ### Anomaly detection
 
 ```kql
-// Decompose and find anomalies
-Events
-| make-series count() default=0 on Timestamp step 1h
+// try it! — decompose and find anomalies in daily storm counts
+StormEvents
+| make-series count() default=0 on StartTime step 1d
 | extend (anomalies, score, baseline) = series_decompose_anomalies(count_)
-| mv-expand Timestamp, count_, anomalies, score, baseline
+| mv-expand StartTime, count_, anomalies, score, baseline
 | where anomalies != 0
+| take 10
 ```
 
 ### Period detection
@@ -510,15 +521,15 @@ print result = format_datetime(datetime(2024-03-15T10:30:00Z), "yyyy-MM")
 
 ```kql
 // Step 1: How big is this table?
-MyTable | count
+StormEvents | count
 
 // Step 2: What does the data look like?
-MyTable | take 10
+StormEvents | take 10
 
 // Step 3: Now write the real query with filters
-MyTable
-| where Timestamp > ago(1d)
-| summarize count() by Category
+StormEvents
+| where StartTime between (datetime(2007-06-01) .. datetime(2007-06-30T23:59:59))
+| summarize count() by EventType
 | top 20 by count_ desc
 ```
 
@@ -532,10 +543,10 @@ Drop columns you don't need as early as possible — especially wide columns lik
 
 ```kql
 // ❌ Carries all columns through the pipeline
-HugeLogs | where Timestamp > ago(1h) | summarize count() by Level
+StormEvents | where State == "TEXAS" | summarize count() by EventType
 
 // ✅ Drop unneeded columns immediately
-HugeLogs | where Timestamp > ago(1h) | project Timestamp, Level | summarize count() by Level
+StormEvents | where State == "TEXAS" | project State, EventType | summarize count() by EventType
 ```
 
 ### Order predicates for maximum pruning
@@ -549,15 +560,15 @@ Kusto has efficient indexes on `datetime` and `string` term columns. Order your 
 
 ```kql
 // ❌ Substring scan runs first on all data
-Events
-| where Message contains "error"
-| where Timestamp > ago(1d)
+StormEvents
+| where EventNarrative contains "power line"
+| where StartTime between (datetime(2007-06-01) .. datetime(2007-06-30T23:59:59))
 
 // ✅ Datetime prunes shards, then term filter, then substring
-Events
-| where Timestamp > ago(1d)
-| where Level has "Error"
-| where Message contains "specific error detail"
+StormEvents
+| where StartTime between (datetime(2007-06-01) .. datetime(2007-06-30T23:59:59))
+| where EventType has "Wind"
+| where EventNarrative contains "power line"
 ```
 
 ### Join performance hints
@@ -598,13 +609,13 @@ Parsing dynamic/JSON columns is expensive. Use `has` to filter out non-matching 
 
 ```kql
 // ❌ Parses JSON for every row
-Events
-| where DynamicColumn.ErrorCode == "E404"
+StormEvents
+| where StormSummary.Details.Description has "tornado"
 
 // ✅ Term filter first, then parse — skips JSON parsing on non-matching rows
-Events
-| where DynamicColumn has "E404"
-| where DynamicColumn.ErrorCode == "E404"
+StormEvents
+| where StormSummary has "tornado"
+| where StormSummary.Details.Description has "tornado"
 ```
 
 ### Summarize with shuffle strategy

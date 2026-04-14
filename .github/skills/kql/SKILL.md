@@ -5,6 +5,9 @@ description: "KQL language expertise for writing correct, efficient Kusto Query 
 
 # KQL Mastery
 
+> **Try it yourself**: All `✅` examples in this skill can be run against the public help cluster:
+> `https://help.kusto.windows.net`, database `Samples` (contains `StormEvents`, `SimpleGraph_Nodes`/`Edges`, `nyc_taxi`, and more).
+
 ## 1. KQL Basics
 
 Kusto Query Language (KQL) is a pipe-forward query language for exploring data. It is the native query language for Azure Data Explorer (ADX), Microsoft Fabric Real-Time Intelligence (EventHouse), Azure Monitor Log Analytics, Microsoft Sentinel, and other Microsoft data services.
@@ -48,19 +51,19 @@ KQL's `dynamic` type is flexible but strict in certain contexts. A common mistak
 **The rule**: Any time you use a dynamic-typed column in `by`, `on`, or `order by`, wrap it in an explicit cast.
 
 ```kql
-// ❌ ERROR: "Summarize group key 'Partners' is of a 'dynamic' type"
-| summarize count() by Partners
+// ❌ ERROR: "Summarize group key ... is of a 'dynamic' type"
+StormEvents | summarize count() by StormSummary.Details.Location
 
 // ✅ FIX
-| summarize count() by tostring(Partners)
+StormEvents | summarize count() by tostring(StormSummary.Details.Location)
 ```
 
 ```kql
 // ❌ ERROR: "order operator: key can't be of dynamic type"
-| order by Area desc
+StormEvents | order by StormSummary.TotalDamages desc
 
 // ✅ FIX
-| order by tostring(Area) desc
+StormEvents | order by tolong(StormSummary.TotalDamages) desc
 ```
 
 ```kql
@@ -121,10 +124,10 @@ Unlike Python's `re.findall()`, KQL's `extract_all` **requires capturing groups*
 
 ```kql
 // ❌ ERROR: "extractall(): argument 2 must be a valid regex with [1..16] matching groups"
-| extend words = extract_all(@"[a-zA-Z]{3,}", Text)
+StormEvents | extend words = extract_all(@"[a-zA-Z]{3,}", EventNarrative)
 
 // ✅ FIX — add parentheses around the pattern
-| extend words = extract_all(@"([a-zA-Z]{3,})", Text)
+StormEvents | extend words = extract_all(@"([a-zA-Z]{3,})", EventNarrative)
 ```
 
 ### Regex toolkit — don't fall back to Python
@@ -142,13 +145,17 @@ Window functions need serialized (ordered) input.
 
 ```kql
 // ❌ ERROR: "Function 'row_cumsum' cannot be invoked. The row set must be serialized."
-| summarize Online = sum(Direction) by bin(Timestamp, 5m)
-| extend CumulativeOnline = row_cumsum(Online)
+StormEvents
+| where State == "TEXAS"
+| summarize DailyCount = count() by bin(StartTime, 1d)
+| extend CumulativeCount = row_cumsum(DailyCount)
 
 // ✅ FIX — add | serialize (or | order by, which implicitly serializes)
-| summarize Online = sum(Direction) by bin(Timestamp, 5m)
-| order by Timestamp asc
-| extend CumulativeOnline = row_cumsum(Online)
+StormEvents
+| where State == "TEXAS"
+| summarize DailyCount = count() by bin(StartTime, 1d)
+| order by StartTime asc
+| extend CumulativeCount = row_cumsum(DailyCount)
 ```
 
 Functions requiring serialization: `row_number()`, `row_cumsum()`, `prev()`, `next()`, `row_window_session()`.
@@ -172,16 +179,16 @@ Safest ────────────────────────�
 5. **Use `materialize()`** for subqueries referenced multiple times
 
 ```kql
-// ❌ OUT OF MEMORY — 24M rows, no filter, dcount on every column
-Consumption
-| summarize dcount(Consumed), count() by Timestamp, HouseholdId, MeterType
-| where dcount_Consumed > 1
+// ❌ OUT OF MEMORY — large table, no filter, many group-by columns
+StormEvents
+| summarize dcount(EventType), count() by StartTime, State, Source
+| where dcount_EventType > 1
 
 // ✅ SAFE — filter first, then aggregate
-Consumption
-| where Timestamp between (datetime(2023-04-15) .. datetime(2023-04-16))
-| summarize dcount(Consumed) by HouseholdId, MeterType
-| where dcount_Consumed > 1
+StormEvents
+| where StartTime between (datetime(2007-04-15) .. datetime(2007-04-16))
+| summarize dcount(EventType) by State, Source
+| where dcount_EventType > 1
 ```
 
 ### When you see `E_LOW_MEMORY_CONDITION`
@@ -214,10 +221,10 @@ KQL sometimes requires explicit casts when comparing computed string values — 
 
 ```kql
 // ❌ ERROR: "Cannot compare values of types string and string. Try adding explicit casts"
-| where geo_point_to_s2cell(Lon, Lat, 16) == other_cell
+StormEvents | where geo_point_to_s2cell(BeginLon, BeginLat, 16) == other_cell
 
 // ✅ FIX — wrap both sides in tostring()
-| where tostring(geo_point_to_s2cell(Lon, Lat, 16)) == tostring(other_cell)
+StormEvents | where tostring(geo_point_to_s2cell(BeginLon, BeginLat, 16)) == tostring(other_cell)
 ```
 
 This is most common with computed values from `geo_point_to_s2cell()` and `strcat()` comparisons. When in doubt, cast with `tostring()`.
@@ -236,14 +243,11 @@ Data | extend sim = series_cosine_similarity(parse_json(VecColumn), target)
 
 ### Geo operations
 ```kql
-// Point-in-polygon check
-| where geo_point_in_polygon(Longitude, Latitude, dynamic({"type":"Polygon","coordinates":[...]}))
-
 // Distance between two points (meters)
-| extend dist = geo_distance_2points(Lon1, Lat1, Lon2, Lat2)
+StormEvents | extend dist = geo_distance_2points(BeginLon, BeginLat, EndLon, EndLat)
 
 // Spatial bucketing for joins
-| extend cell = geo_point_to_s2cell(Lon, Lat, 8)
+StormEvents | extend cell = geo_point_to_s2cell(BeginLon, BeginLat, 8)
 ```
 
 ### Graph queries
@@ -251,15 +255,15 @@ Data | extend sim = series_cosine_similarity(parse_json(VecColumn), target)
 // Persistent graph model — query the latest snapshot
 graph("MyGraphModel")
 | graph-match (src)-[e*1..5]->(dst)
-  where src.Name == "start" and dst.IsTarget == true
-  project src.Name, dst.Name, path_length = array_length(e)
+  where src.name == "Alice"
+  project src.name, dst.name, path_length = array_length(e)
 
-// Transient graph — build inline with make-graph
-Edges
-| make-graph SourceId --> TargetId with Nodes on NodeId
+// Transient graph — build inline with make-graph (try it on help cluster!)
+SimpleGraph_Edges
+| make-graph source --> target with SimpleGraph_Nodes on id
 | graph-match (src)-[e*1..5]->(dst)
-  where src.Name == "start" and dst.IsTarget == true
-  project src.Name, dst.Name, path_length = array_length(e)
+  where src.name == "Alice"
+  project src.name, dst.name, path_length = array_length(e)
 ```
 
 ### Time series
@@ -373,14 +377,14 @@ Both `sort by` and `order by` work identically in KQL — they are aliases. Use 
 ### contains vs has
 ```kql
 // contains: substring match (slower)
-| where Message contains "error"        // finds "MyErrorHandler" too
+StormEvents | where EventNarrative contains "tree"   // finds "trees", "treetop" too
 
 // has: term/word match (faster, uses index)
-| where Message has "error"             // matches word boundaries only
+StormEvents | where EventNarrative has "tree"        // matches word boundaries only
 
 // For exact prefix/suffix
-| where Message startswith "Error:"
-| where Message endswith ".log"
+StormEvents | where EventType startswith "Thunder"
+StormEvents | where Source endswith "Spotter"
 ```
 
 ## 13. Error Recovery Strategy
