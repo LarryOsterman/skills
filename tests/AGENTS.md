@@ -7,6 +7,7 @@ This folder contains a test harness for evaluating AI-generated code against acc
 **What we're testing:** Skills in `.github/skills/` that provide domain knowledge for Azure SDKs.
 
 **How it works:**
+
 1. Each skill has **acceptance criteria** (correct/incorrect code patterns)
 2. Test **scenarios** prompt code generation and validate the output
 3. The harness runs scenarios using the [GitHub Copilot SDK](https://github.com/github/copilot-sdk) and scores generated code against criteria
@@ -25,14 +26,16 @@ Run `pnpm harness --list` from the `tests/` directory to see all skills with cri
 
 ### Step 1: Create Acceptance Criteria
 
-**Location:** `.github/skills/<skill-name>/references/acceptance-criteria.md`
+**Location:** `tests/scenarios/<skill-name>/acceptance-criteria.md`
 
 **Source materials** (in order of priority):
+
 1. `.github/skills/<skill-name>/references/*.md` — existing reference docs
 2. Official Microsoft Learn docs via `microsoft-docs` MCP
 3. SDK source code patterns
 
 **Format:**
+
 ```markdown
 # Acceptance Criteria: <skill-name>
 
@@ -58,6 +61,7 @@ from wrong.module import Client  # Wrong import path
 **Location:** `tests/scenarios/<skill-name>/scenarios.yaml`
 
 **Template:**
+
 ```yaml
 config:
   model: gpt-4
@@ -82,6 +86,7 @@ scenarios:
 ```
 
 **Scenario design principles:**
+
 - Each scenario tests ONE specific pattern or feature
 - `expected_patterns` — patterns that MUST appear in generated code
 - `forbidden_patterns` — common mistakes that must NOT appear
@@ -108,6 +113,7 @@ pnpm test
 ```
 
 **Success criteria:**
+
 - All scenarios pass (100% pass rate)
 - No false positives (mock responses should always pass)
 - Patterns catch real mistakes (forbidden patterns are meaningful)
@@ -141,8 +147,9 @@ tests/
 ```
 
 **Acceptance criteria location:**
+
 ```
-.github/skills/<skill-name>/references/acceptance-criteria.md
+tests/scenarios/<skill-name>/acceptance-criteria.md
 ```
 
 ---
@@ -205,7 +212,7 @@ pnpm typecheck
 
 | Issue | Fix |
 |-------|-----|
-| Skill not discovered | Check `acceptance-criteria.md` exists in `references/` |
+| Skill not discovered | Check `acceptance-criteria.md` exists in `tests/scenarios/<skill-name>/` |
 | Scenario fails | Check `mock_response` actually contains expected patterns |
 | Pattern not matching | Escape regex special chars, use raw strings |
 | YAML parse error | Check indentation, use `|` for multiline strings |
@@ -249,6 +256,7 @@ The Ralph Loop is an iterative code generation and improvement system that re-ge
 ```
 
 **Core flow:**
+
 1. **Generate** code for a given skill/scenario
 2. **Evaluate** against acceptance criteria (score 0-100)
 3. **Analyze** failures and determine corrective actions
@@ -275,6 +283,7 @@ pnpm harness azure-ai-projects-py --ralph --max-iterations 5 --threshold 85 --mo
 ```
 
 **Stop conditions:**
+
 - Quality threshold met (default: 80)
 - Perfect score (100)
 - Max iterations reached (default: 5)
@@ -286,6 +295,7 @@ pnpm harness azure-ai-projects-py --ralph --max-iterations 5 --threshold 85 --mo
 #### Match Existing Style
 
 Look at these files for patterns:
+
 - `harness/evaluator.ts` — Scoring logic, `EvaluationResult` structure
 - `harness/criteria-loader.ts` — File loading, parsing
 - `harness/runner.ts` — CLI integration, `SkillEvaluationRunner`
@@ -293,6 +303,7 @@ Look at these files for patterns:
 #### Test-Driven Development
 
 Create tests alongside implementation:
+
 ```bash
 # Example test file structure
 tests/
@@ -302,6 +313,7 @@ tests/
 ```
 
 Run tests:
+
 ```bash
 cd tests
 pnpm install
@@ -311,11 +323,13 @@ pnpm test:run harness/ralph-loop.test.ts -v
 ### Success Criteria
 
 **Phase 1 is complete when:**
+
 - [x] `--ralph` flag runs iterative loop on any skill
 - [x] Feedback mechanism improves scores across iterations
 - [x] All new code has test coverage (45 tests passing)
 
 **Full implementation success:**
+
 - 127 skills can run through Ralph Loop
 - Average convergence in <5 iterations
 - Quality scores improve by >20% from iteration 1 to final
@@ -363,12 +377,14 @@ response = client.analyze_image(request)  # <-- The actual error
 ```
 
 **Matching:** BOTH the imports AND the non-import code (the misuse) must be present. This prevents false positives when:
+
 - The import is valid for its intended use
 - Only the misuse context makes it incorrect
 
 ### Why This Matters
 
 **Bad behavior (before fix):**
+
 ```
 Code: from azure.ai.contentsafety.models import AnalyzeTextOptions
       request = AnalyzeTextOptions(text="Hello")
@@ -379,6 +395,7 @@ Result: ❌ FALSE POSITIVE - flagged as incorrect because the import appears
 ```
 
 **Good behavior (after fix):**
+
 ```
 Code: from azure.ai.contentsafety.models import AnalyzeTextOptions
       request = AnalyzeTextOptions(text="Hello")
@@ -428,6 +445,7 @@ response = client.analyze_image(request)
 | Score lower than expected | Multiple patterns matching | Check for overlapping incorrect patterns |
 
 **Debug command:**
+
 ```bash
 pnpm harness <skill> --mock --verbose
 ```

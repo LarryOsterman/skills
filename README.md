@@ -72,7 +72,7 @@ Coding agents like [Copilot CLI](https://github.com/features/copilot/cli) and [G
 
 > 132 skills in `.github/skills/` — flat structure with language suffixes for automatic discovery
 
-| Language | Count | Suffix | 
+| Language | Count | Suffix |
 |----------|-------|--------|
 | [Core](#core) | 9 | — |
 | [Python](#python) | 41 | `-py` |
@@ -558,6 +558,7 @@ Plugins are installable packages containing curated sets of agents, commands, an
 |--------|-------------|----------|
 | [deep-wiki](https://github.com/microsoft/skills/tree/main/.github/plugins/deep-wiki) | AI-powered wiki generator with Mermaid diagrams, source citations, onboarding guides, AGENTS.md, and llms.txt | `/deep-wiki:generate`, `/deep-wiki:crisp`, `/deep-wiki:catalogue`, `/deep-wiki:page`, `/deep-wiki:research`, `/deep-wiki:ask`, `/deep-wiki:onboard`, `/deep-wiki:agents`, `/deep-wiki:llms`, `/deep-wiki:changelog`, `/deep-wiki:ado`, `/deep-wiki:build`, `/deep-wiki:deploy` |
 | [azure-skills](https://github.com/microsoft/skills/tree/main/.github/plugins/azure-skills) | Microsoft Azure MCP integration for cloud resource management, deployments, and Azure services. Includes 18 skills covering AI, storage, diagnostics, cost optimization, compliance, RBAC, and a 3-step deployment workflow (`azure-prepare` → `azure-validate` → `azure-deploy`). | Skills-based (no slash commands) — auto-triggered by intent matching via `azure` and `foundry-mcp` MCP servers |
+
 ---
 
 ## MCP Servers
@@ -603,7 +604,7 @@ Reusable prompt templates in [`.github/prompts/`](.github/prompts/):
 
 ### Documentation
 
-See the docs at https://microsoft.github.io/skills/#documentation.
+See the docs at <https://microsoft.github.io/skills/#documentation>.
 
 ---
 
@@ -650,6 +651,7 @@ See [`tests/README.md`](tests/README.md) for instructions on adding acceptance c
 The test harness implements iterative quality improvement patterns inspired by [Sensei](https://github.com/microsoft/GitHub-Copilot-for-Azure/tree/main/.github/skills/sensei):
 
 **Ralph Loop** — An iterative code generation and improvement system that:
+
 1. **Generate** code for a given skill/scenario
 2. **Evaluate** against acceptance criteria (score 0-100)
 3. **Analyze** failures and build LLM-actionable feedback
@@ -674,6 +676,7 @@ The test harness implements iterative quality improvement patterns inspired by [
 New skills must follow the full workflow to ensure quality and discoverability:
 
 **Prerequisites:**
+
 - SDK package name (e.g., `azure-ai-agents`, `Azure.AI.OpenAI`)
 - Microsoft Learn documentation URL or GitHub repository
 - Target language (py/dotnet/ts/java)
@@ -686,15 +689,16 @@ New skills must follow the full workflow to ensure quality and discoverability:
    - Reference official docs via `microsoft-docs` MCP
 
 2. **Categorize with symlink** in `skills/<language>/<category>/`
+
    ```bash
    # Example: Python AI agent skill in foundry category
    cd skills/python/foundry
    ln -s ../../../.github/skills/azure-ai-projects-py projects
    ```
-   
+
    Categories: `foundry`, `data`, `messaging`, `monitoring`, `entra`, `integration`, `compute`, `m365`, `general`
 
-3. **Create acceptance criteria** in `.github/skills/<skill>/references/acceptance-criteria.md`
+3. **Create acceptance criteria** in `tests/scenarios/<skill>/acceptance-criteria.md`
    - Document correct/incorrect import patterns
    - Document authentication patterns
    - Document async variants
@@ -704,6 +708,7 @@ New skills must follow the full workflow to ensure quality and discoverability:
    - Include mock responses for CI
 
 5. **Verify tests pass**
+
    ```bash
    cd tests && pnpm harness <skill-name> --mock --verbose
    ```

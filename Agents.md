@@ -53,12 +53,14 @@ These principles reduce common LLM coding mistakes. Apply them to every task.
 **Touch only what you must. Clean up only your own mess.**
 
 When editing existing code:
+
 - Don't "improve" adjacent code, comments, or formatting.
 - Don't refactor things that aren't broken.
 - Match existing style, even if you'd do it differently.
 - If you notice unrelated dead code, mention it — don't delete it.
 
 When your changes create orphans:
+
 - Remove imports/variables/functions that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
@@ -77,6 +79,7 @@ Transform tasks into verifiable goals:
 | "Refactor X" | "Ensure tests pass before and after" |
 
 For multi-step tasks, state a brief plan:
+
 ```
 1. [Step] → verify: [check]
 2. [Step] → verify: [check]
@@ -104,6 +107,7 @@ Follow these layered boundaries when building features:
 ```
 
 **Rules:**
+
 - Dependencies point inward (outer layers depend on inner layers)
 - Domain layer has no external dependencies
 - Infrastructure implements interfaces defined in inner layers
@@ -147,6 +151,7 @@ AZURE_AI_MODEL_DEPLOYMENT_NAME=gpt-4o-mini
 ## Skills
 
 Skills are domain-specific knowledge packages in `.github/skills/`. Each has a `SKILL.md` with:
+
 - **YAML frontmatter** (`name`, `description`) — triggers skill loading
 - **Markdown body** — loaded only when skill activates
 
@@ -180,6 +185,7 @@ Only load skills relevant to the current task. Loading all skills causes context
 > **Detailed guide:** Load the `/skill-creator` skill for comprehensive instructions.
 
 **Prerequisites:** User MUST provide SDK context:
+
 - SDK package name (e.g., `azure-ai-agents`)
 - Documentation URL or GitHub repository
 - Target language (py/dotnet/ts/java)
@@ -187,22 +193,25 @@ Only load skills relevant to the current task. Loading all skills causes context
 **Quick workflow:**
 
 1. **Create skill** in `.github/skills/<skill-name>/SKILL.md`
+
    ```
    # Naming: azure-<service>-<language>
    # Example: azure-ai-agents-py
    ```
 
 2. **Categorize with symlink** in `skills/<language>/<category>/`
+
    ```bash
    cd skills/python/foundry
    ln -s ../../../.github/skills/azure-ai-agents-py agents
    ```
 
 3. **Create tests**
-   - `references/acceptance-criteria.md` — correct/incorrect patterns
+   - `tests/scenarios/<skill>/acceptance-criteria.md` — correct/incorrect patterns
    - `tests/scenarios/<skill>/scenarios.yaml` — test scenarios
 
 4. **Verify**
+
    ```bash
    cd tests && pnpm harness <skill-name> --mock --verbose
    ```
@@ -297,6 +306,7 @@ assert result == expected
 ```
 
 For Azure SDK tests:
+
 - Use `pytest-asyncio` for async tests
 - Mock Azure clients at the service boundary
 - Test both success and error paths

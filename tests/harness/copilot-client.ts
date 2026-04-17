@@ -124,7 +124,7 @@ export class SkillCopilotClient implements CopilotClient {
     const refsDir = join(skillDir, "references");
     if (existsSync(refsDir)) {
       const refFiles = readdirSync(refsDir).filter(
-        (f) => f.endsWith(".md") && f !== "acceptance-criteria.md"
+        (f) => f.endsWith(".md")
       );
       for (const refFile of refFiles) {
         const refPath = join(refsDir, refFile);

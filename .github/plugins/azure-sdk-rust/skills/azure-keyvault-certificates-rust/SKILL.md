@@ -6,7 +6,7 @@ description: |
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.0.0"
+  version: "0.12.0"
   package: azure_security_keyvault_certificates
 ---
 
@@ -83,9 +83,10 @@ let params = CreateCertificateParameters {
     ..Default::default()
 };
 
-let operation = client
-    .create_certificate("cert-name", params.try_into()?, None)
-    .await?;
+let certificate = client
+    .create_certificate("cert-name", params.try_into()?, None)?
+    .await?
+    .into_model()?;
 ```
 
 ### Import Certificate
@@ -169,13 +170,14 @@ client
 ## RBAC Permissions
 
 Assign these Key Vault roles:
+
 - `Key Vault Certificates Officer` — full CRUD on certificates
 - `Key Vault Reader` — read certificate metadata
 
 ## Reference Links
 
-| Resource | Link |
-|----------|------|
-| API Reference | https://docs.rs/azure_security_keyvault_certificates |
-| Source Code | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/keyvault/azure_security_keyvault_certificates |
-| crates.io | https://crates.io/crates/azure_security_keyvault_certificates |
+| Resource      | Link                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------- |
+| API Reference | https://docs.rs/azure_security_keyvault_certificates                                                    |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/keyvault/azure_security_keyvault_certificates |
+| crates.io     | https://crates.io/crates/azure_security_keyvault_certificates                                           |

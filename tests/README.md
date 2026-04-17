@@ -15,7 +15,8 @@ pnpm test                                        # Run unit tests
 A TypeScript test framework for evaluating AI-generated code against acceptance criteria defined in skill files. Powered by the [GitHub Copilot SDK](https://github.com/github/copilot-sdk).
 
 **Workflow:**
-1. Load acceptance criteria from `.github/skills/<skill>/references/acceptance-criteria.md`
+
+1. Load acceptance criteria from `tests/scenarios/<skill>/acceptance-criteria.md`
 2. Run test scenarios from `tests/scenarios/<skill>/scenarios.yaml`
 3. Generate code using [GitHub Copilot SDK](https://github.com/github/copilot-sdk) (or mock responses)
 4. Evaluate code against correct/incorrect patterns
@@ -81,6 +82,7 @@ Generate → Evaluate → Analyze → Re-generate (with feedback)
 ```
 
 **Stop conditions:**
+
 - Quality threshold met (default: 80)
 - Perfect score (100)
 - Max iterations reached (default: 5)
@@ -121,7 +123,7 @@ const ralphSummary = await runner.runWithLoop('azure-ai-projects-py', undefined,
 
 ### 1. Create Acceptance Criteria
 
-Create `.github/skills/<skill-name>/references/acceptance-criteria.md`:
+Create `tests/scenarios/<skill-name>/acceptance-criteria.md`:
 
 ```markdown
 # Acceptance Criteria: skill-name
@@ -221,7 +223,7 @@ The harness supports two authentication methods for real Copilot SDK evaluation:
 
 For automated pipelines, use a Personal Access Token:
 
-1. Create a fine-grained PAT at https://github.com/settings/personal-access-tokens/new
+1. Create a fine-grained PAT at <https://github.com/settings/personal-access-tokens/new>
 2. Add the **"Copilot Requests"** permission
 3. Set the token as environment variable `GH_TOKEN` or `GITHUB_TOKEN`
 
@@ -242,4 +244,3 @@ To enable real SDK evaluation in GitHub Actions:
 1. Create repository secret `COPILOT_TOKEN` with PAT (Copilot Requests permission)
 2. Set repository variable `ENABLE_REAL_EVAL=true`
 3. Trigger manually via Actions tab, or wait for nightly run
-

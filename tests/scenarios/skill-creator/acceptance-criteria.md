@@ -320,8 +320,7 @@ skill-name/
 ├── SKILL.md              # Required - main skill file
 └── references/           # Optional - detailed docs
     ├── tools.md
-    ├── streaming.md
-    └── acceptance-criteria.md
+    └── streaming.md
 ```
 
 ### 7.2 ✅ CORRECT: Skill with Scripts
@@ -352,6 +351,7 @@ skill-name/
 ### 8.1 ✅ CORRECT: Main Content in SKILL.md, Details in References
 
 **SKILL.md (under 500 lines):**
+
 ```markdown
 # Azure AI Agents SDK
 
@@ -366,6 +366,7 @@ For streaming patterns, see [references/streaming.md](references/streaming.md)
 ```
 
 **references/tools.md:**
+
 ```markdown
 # Tool Configurations
 
@@ -473,27 +474,32 @@ AzurePowerShellCredential. Each credential type has its own set of requirements.
 ## 12. Checklist for New Skills
 
 ### Frontmatter
+
 - [ ] Has `name` field with correct format (e.g., `azure-example-py`)
 - [ ] Has `description` with what it does AND when to use it
 - [ ] Description includes trigger phrases
 
 ### Structure
+
 - [ ] SKILL.md under 500 lines
 - [ ] Follows section order: Install → Env → Auth → Core → Features → References
 - [ ] Large content split into `references/` files
 
 ### Authentication
+
 - [ ] Uses `DefaultAzureCredential` (never hardcoded)
 - [ ] Shows environment variable configuration
 - [ ] Includes cleanup/close in examples
 
 ### Quality
+
 - [ ] No README.md, CHANGELOG.md, or meta-docs
 - [ ] All code examples are complete and runnable
 - [ ] References organized by feature, not by length
 - [ ] Instructs to search `microsoft-docs` MCP for current APIs
 
 ### Naming
+
 - [ ] Uses lowercase with hyphens
 - [ ] Has language suffix (`-py`, `-dotnet`, `-ts`, `-java`) unless cross-language
 - [ ] Matches existing naming conventions in repository

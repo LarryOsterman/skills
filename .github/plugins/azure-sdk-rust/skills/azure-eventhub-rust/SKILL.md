@@ -6,7 +6,7 @@ description: |
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.0.0"
+  version: "0.13.0"
   package: azure_messaging_eventhubs
 ---
 
@@ -81,13 +81,30 @@ let consumer = ConsumerClient::builder()
 ### Receive Events
 
 ```rust
-// Open receiver for specific partition
-let receiver = consumer.open_partition_receiver("0", None).await?;
+use futures::stream::StreamExt;
+use azure_messaging_eventhubs::{OpenReceiverOptions, StartLocation, StartPosition};
 
-// Receive events
-let events = receiver.receive_events(100, None).await?;
-for event in events {
-    println!("Event data: {:?}", event.body());
+// Open receiver for specific partition
+let receiver = consumer
+    .open_receiver_on_partition(
+        "0".to_string(),
+        Some(OpenReceiverOptions {
+            start_position: Some(StartPosition {
+                location: StartLocation::Earliest,
+                ..Default::default()
+            }),
+            ..Default::default()
+        }),
+    )
+    .await?;
+
+// Stream events
+let mut event_stream = receiver.stream_events();
+while let Some(event_result) = event_stream.next().await {
+    match event_result {
+        Ok(event) => println!("Received event: {:?}", event),
+        Err(err) => eprintln!("Error receiving event: {:?}", err),
+    }
 }
 ```
 
@@ -124,8 +141,8 @@ cargo add azure_messaging_eventhubs_checkpointstore_blob
 
 ## Reference Links
 
-| Resource | Link |
-|----------|------|
-| API Reference | https://docs.rs/azure_messaging_eventhubs |
-| Source Code | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/eventhubs/azure_messaging_eventhubs |
-| crates.io | https://crates.io/crates/azure_messaging_eventhubs |
+| Resource      | Link                                                                                          |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| API Reference | https://docs.rs/azure_messaging_eventhubs                                                     |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/eventhubs/azure_messaging_eventhubs |
+| crates.io     | https://crates.io/crates/azure_messaging_eventhubs                                            |

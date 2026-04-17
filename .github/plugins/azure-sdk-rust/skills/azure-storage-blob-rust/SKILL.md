@@ -6,7 +6,7 @@ description: |
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.0.0"
+  version: "0.11.0"
   package: azure_storage_blob
 ---
 
@@ -45,11 +45,11 @@ let blob_client = BlobClient::new(
 
 ## Client Types
 
-| Client | Purpose |
-|--------|---------|
-| `BlobServiceClient` | Account-level operations, list containers |
-| `BlobContainerClient` | Container operations, list blobs |
-| `BlobClient` | Individual blob operations |
+| Client                | Purpose                                   |
+| --------------------- | ----------------------------------------- |
+| `BlobServiceClient`   | Account-level operations, list containers |
+| `BlobContainerClient` | Container operations, list blobs          |
+| `BlobClient`          | Individual blob operations                |
 
 ## Core Operations
 
@@ -62,8 +62,6 @@ let data = b"hello world";
 blob_client
     .upload(
         RequestContent::from(data.to_vec()),
-        false,  // overwrite
-        u64::try_from(data.len())?,
         None,
     )
     .await?;
@@ -123,14 +121,15 @@ while let Some(blob) = pager.try_next().await? {
 ## RBAC Permissions
 
 For Entra ID auth, assign one of these roles:
+
 - `Storage Blob Data Reader` — read-only
 - `Storage Blob Data Contributor` — read/write
 - `Storage Blob Data Owner` — full access including RBAC
 
 ## Reference Links
 
-| Resource | Link |
-|----------|------|
-| API Reference | https://docs.rs/azure_storage_blob |
-| Source Code | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/storage/azure_storage_blob |
-| crates.io | https://crates.io/crates/azure_storage_blob |
+| Resource      | Link                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------ |
+| API Reference | https://docs.rs/azure_storage_blob                                                   |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/storage/azure_storage_blob |
+| crates.io     | https://crates.io/crates/azure_storage_blob                                          |

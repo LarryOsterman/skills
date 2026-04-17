@@ -6,7 +6,7 @@ description: |
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.0.0"
+  version: "0.13.0"
   package: azure_security_keyvault_keys
 ---
 
@@ -42,12 +42,12 @@ let client = KeyClient::new(
 
 ## Key Types
 
-| Type | Description |
-|------|-------------|
-| RSA | RSA keys (2048, 3072, 4096 bits) |
-| EC | Elliptic curve keys (P-256, P-384, P-521) |
-| RSA-HSM | HSM-protected RSA keys |
-| EC-HSM | HSM-protected EC keys |
+| Type    | Description                               |
+| ------- | ----------------------------------------- |
+| RSA     | RSA keys (2048, 3072, 4096 bits)          |
+| EC      | Elliptic curve keys (P-256, P-384, P-521) |
+| RSA-HSM | HSM-protected RSA keys                    |
+| EC-HSM  | HSM-protected EC keys                     |
 
 ## Core Operations
 
@@ -68,7 +68,7 @@ println!("Key ID: {:?}", key.key.as_ref().map(|k| &k.kid));
 use azure_security_keyvault_keys::models::{CreateKeyParameters, KeyType};
 
 let params = CreateKeyParameters {
-    kty: KeyType::Rsa,
+    kty: Some(KeyType::Rsa),
     key_size: Some(2048),
     ..Default::default()
 };
@@ -85,7 +85,7 @@ let key = client
 use azure_security_keyvault_keys::models::{CreateKeyParameters, KeyType, CurveName};
 
 let params = CreateKeyParameters {
-    kty: KeyType::Ec,
+    kty: Some(KeyType::Ec),
     curve: Some(CurveName::P256),
     ..Default::default()
 };
@@ -139,11 +139,44 @@ client.restore_key(params.try_into()?, None).await?;
 Key Vault can perform crypto operations without exposing the private key:
 
 ```rust
-// For cryptographic operations, use the key's operations
-// Available operations depend on key type and permissions:
-// - encrypt/decrypt (RSA)
-// - sign/verify (RSA, EC)
-// - wrapKey/unwrapKey (RSA)
+use azure_security_keyvault_keys::models::{
+    CreateKeyParameters, EncryptionAlgorithm, KeyOperationParameters, KeyType,
+};
+use azure_security_keyvault_keys::ResourceExt;
+
+// Create a KEK
+let body = CreateKeyParameters {
+    kty: Some(KeyType::Rsa),
+    key_size: Some(2048),
+    ..Default::default()
+};
+let key = client
+    .create_key("kek-name", body.try_into()?, None)
+    .await?
+    .into_model()?;
+let key_version = key.resource_id()?.version.expect("key version required");
+
+// Wrap a key
+let parameters = KeyOperationParameters {
+    algorithm: Some(EncryptionAlgorithm::RsaOaep256),
+    value: Some(data_to_wrap),
+    ..Default::default()
+};
+let wrapped = client
+    .wrap_key("kek-name", &key_version, parameters.try_into()?, None)
+    .await?
+    .into_model()?;
+
+// Unwrap a key
+let parameters = KeyOperationParameters {
+    algorithm: Some(EncryptionAlgorithm::RsaOaep256),
+    value: wrapped.result,
+    ..Default::default()
+};
+let unwrapped = client
+    .unwrap_key("kek-name", &key_version, parameters.try_into()?, None)
+    .await?
+    .into_model()?;
 ```
 
 ## Best Practices
@@ -159,13 +192,14 @@ Key Vault can perform crypto operations without exposing the private key:
 ## RBAC Permissions
 
 Assign these Key Vault roles:
+
 - `Key Vault Crypto User` — use keys for crypto operations
 - `Key Vault Crypto Officer` — full CRUD on keys
 
 ## Reference Links
 
-| Resource | Link |
-|----------|------|
-| API Reference | https://docs.rs/azure_security_keyvault_keys |
-| Source Code | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/keyvault/azure_security_keyvault_keys |
-| crates.io | https://crates.io/crates/azure_security_keyvault_keys |
+| Resource      | Link                                                                                            |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| API Reference | https://docs.rs/azure_security_keyvault_keys                                                    |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/keyvault/azure_security_keyvault_keys |
+| crates.io     | https://crates.io/crates/azure_security_keyvault_keys                                           |

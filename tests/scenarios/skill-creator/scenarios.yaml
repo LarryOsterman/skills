@@ -22,7 +22,7 @@ scenarios:
       - "DefaultAzureCredential"
       - "Triggers?:|Use when"
     forbidden_patterns:
-      - "api_key.*=.*[\"']sk-"  # Hardcoded credentials
+      - 'api_key.*=.*["'']sk-' # Hardcoded credentials
       - "README.md"
     tags:
       - frontmatter
@@ -100,7 +100,7 @@ scenarios:
       - "## Core Workflow"
       - "DefaultAzureCredential"
       - "## Reference"
-      - "\\|.*\\|"  # Table format
+      - "\\|.*\\|" # Table format
     forbidden_patterns:
       - "api_key.*hardcoded"
     tags:
@@ -193,7 +193,7 @@ scenarios:
       - "Triggers?:|Use when|Use for"
       - "router|endpoint|API"
     forbidden_patterns:
-      - "description:$"  # Empty description
+      - "description:$" # Empty description
     tags:
       - frontmatter
       - triggers
@@ -258,7 +258,7 @@ scenarios:
       - "\\[.*\\]\\(references/.*\\.md\\)"
       - "\\|.*\\|.*\\|"
     forbidden_patterns:
-      - "1000.*lines"  # Skill too long
+      - "1000.*lines" # Skill too long
     tags:
       - references
       - progressive-disclosure
@@ -312,7 +312,6 @@ scenarios:
       | [references/tools.md](references/tools.md) | Tool configurations |
       | [references/streaming.md](references/streaming.md) | Event streaming |
       | [references/async.md](references/async.md) | Async patterns |
-      | [references/acceptance-criteria.md](references/acceptance-criteria.md) | Test criteria |
 
   # Authentication Section
   - name: authentication_section
@@ -326,7 +325,7 @@ scenarios:
       - "credential"
       - "with.*client:|async with"
     forbidden_patterns:
-      - "api_key.*=.*['\"][a-zA-Z0-9]"  # Hardcoded key
+      - 'api_key.*=.*[''"][a-zA-Z0-9]' # Hardcoded key
       - "password"
     tags:
       - authentication
@@ -378,7 +377,7 @@ scenarios:
       - "client"
       - "delete|cleanup|close"
     forbidden_patterns:
-      - "\\.\\.\\.\\)"  # Incomplete parameters
+      - "\\.\\.\\.\\)" # Incomplete parameters
       - "# TODO"
     tags:
       - examples
