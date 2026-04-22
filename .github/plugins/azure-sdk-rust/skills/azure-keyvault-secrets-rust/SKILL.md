@@ -1,23 +1,18 @@
 ---
 name: azure-keyvault-secrets-rust
 description: |
-  Azure Key Vault Secrets SDK for Rust. Use for storing and retrieving secrets, passwords, and API keys.
+  Azure Key Vault Secrets SDK for Rust (v0.13.0). Use for storing and retrieving secrets, passwords, and API keys.
   Triggers: "keyvault secrets rust", "SecretClient rust", "get secret rust", "set secret rust".
-license: MIT
-metadata:
-  author: Microsoft
-  version: "0.13.0"
-  package: azure_security_keyvault_secrets
 ---
 
 # Azure Key Vault Secrets SDK for Rust
 
-Client library for Azure Key Vault Secrets — secure storage for passwords, API keys, and other secrets.
+> `azure_security_keyvault_secrets` v0.13.0 — Secure storage for passwords, API keys, and connection strings.
 
 ## Installation
 
 ```sh
-cargo add azure_security_keyvault_secrets azure_identity
+cargo add azure_security_keyvault_secrets azure_identity tokio futures
 ```
 
 ## Environment Variables
@@ -26,73 +21,88 @@ cargo add azure_security_keyvault_secrets azure_identity
 AZURE_KEYVAULT_URL=https://<vault-name>.vault.azure.net/
 ```
 
-## Authentication
+## Client Setup
 
 ```rust
 use azure_identity::DeveloperToolsCredential;
 use azure_security_keyvault_secrets::SecretClient;
 
-let credential = DeveloperToolsCredential::new(None)?;
-let client = SecretClient::new(
-    "https://<vault-name>.vault.azure.net/",
-    credential.clone(),
-    None,
-)?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let credential = DeveloperToolsCredential::new(None)?;
+    let client = SecretClient::new(
+        "https://<your-key-vault-name>.vault.azure.net/",
+        credential.clone(),
+        None,
+    )?;
+
+    let secret = client
+        .get_secret("secret-name", None)
+        .await?
+        .into_model()?;
+    println!("Secret: {:?}", secret.value);
+
+    Ok(())
+}
 ```
 
-## Core Operations
-
-### Get Secret
+## Set Secret
 
 ```rust
-let secret = client
-    .get_secret("secret-name", None)
-    .await?
-    .into_model()?;
+use azure_security_keyvault_secrets::{models::SetSecretParameters, ResourceExt};
 
-println!("Secret value: {:?}", secret.value);
-```
-
-### Set Secret
-
-```rust
-use azure_security_keyvault_secrets::models::SetSecretParameters;
-
-let params = SetSecretParameters {
+let secret_set_parameters = SetSecretParameters {
     value: Some("secret-value".into()),
     ..Default::default()
 };
 
 let secret = client
-    .set_secret("secret-name", params.try_into()?, None)
+    .set_secret("secret-name", secret_set_parameters.try_into()?, None)
     .await?
     .into_model()?;
+
+println!(
+    "Secret Name: {:?}, Value: {:?}, Version: {:?}",
+    secret.resource_id()?.name,
+    secret.value,
+    secret.resource_id()?.version
+);
 ```
 
-### Update Secret Properties
+## Update Secret Properties
 
 ```rust
 use azure_security_keyvault_secrets::models::UpdateSecretPropertiesParameters;
 use std::collections::HashMap;
 
-let params = UpdateSecretPropertiesParameters {
+let secret_update_parameters = UpdateSecretPropertiesParameters {
     content_type: Some("text/plain".into()),
-    tags: Some(HashMap::from([("env".into(), "prod".into())])),
+    tags: Some(HashMap::from_iter(vec![(
+        "tag-name".into(),
+        "tag-value".into(),
+    )])),
     ..Default::default()
 };
 
 client
-    .update_secret_properties("secret-name", params.try_into()?, None)
-    .await?;
+    .update_secret_properties(
+        "secret-name",
+        secret_update_parameters.try_into()?,
+        None,
+    )
+    .await?
+    .into_model()?;
 ```
 
-### Delete Secret
+## Delete Secret
 
 ```rust
 client.delete_secret("secret-name", None).await?;
 ```
 
-### List Secrets
+## List Secrets
+
+Note: `list_secret_properties` returns a pager directly (no `.into_stream()`).
 
 ```rust
 use azure_security_keyvault_secrets::ResourceExt;
@@ -101,42 +111,33 @@ use futures::TryStreamExt;
 let mut pager = client.list_secret_properties(None)?;
 while let Some(secret) = pager.try_next().await? {
     let name = secret.resource_id()?.name;
-    println!("Secret: {}", name);
+    println!("Found Secret with Name: {}", name);
 }
 ```
 
-### Get Specific Version
+## Error Handling
 
 ```rust
-use azure_security_keyvault_secrets::models::SecretClientGetSecretOptions;
-
-let options = SecretClientGetSecretOptions {
-    secret_version: Some("version-id".into()),
-    ..Default::default()
-};
-
-let secret = client
-    .get_secret("secret-name", Some(options))
-    .await?
-    .into_model()?;
+match client.get_secret("secret-name", None).await {
+    Ok(response) => println!("Secret Value: {:?}", response.into_model()?.value),
+    Err(err) => println!("Error: {:#?}", err.into_inner()?),
+}
 ```
+
+## RBAC Permissions
+
+| Role                       | Access       |
+| -------------------------- | ------------ |
+| `Key Vault Secrets User`   | Get and list |
+| `Key Vault Secrets Officer` | Full CRUD    |
 
 ## Best Practices
 
 1. **Use Entra ID auth** — `DeveloperToolsCredential` for dev, `ManagedIdentityCredential` for production
 2. **Use `into_model()?`** — to deserialize responses
-3. **Use `ResourceExt` trait** — for extracting names from IDs
-4. **Handle soft delete** — deleted secrets can be recovered within retention period
-5. **Set content type** — helps identify secret format
-6. **Use tags** — for organizing and filtering secrets
-7. **Version secrets** — new values create new versions automatically
-
-## RBAC Permissions
-
-Assign these Key Vault roles:
-
-- `Key Vault Secrets User` — get and list
-- `Key Vault Secrets Officer` — full CRUD
+3. **Use `ResourceExt` trait** — for extracting names from resource IDs
+4. **Handle soft delete** — deleted secrets are recoverable within retention period
+5. **Use `try_into()?`** — to convert parameter structs for API calls
 
 ## Reference Links
 

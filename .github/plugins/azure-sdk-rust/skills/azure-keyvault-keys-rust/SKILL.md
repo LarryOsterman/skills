@@ -1,23 +1,18 @@
 ---
 name: azure-keyvault-keys-rust
 description: |
-  Azure Key Vault Keys SDK for Rust. Use for creating, managing, and using cryptographic keys.
-  Triggers: "keyvault keys rust", "KeyClient rust", "create key rust", "encrypt rust", "sign rust".
-license: MIT
-metadata:
-  author: Microsoft
-  version: "0.13.0"
-  package: azure_security_keyvault_keys
+  Azure Key Vault Keys SDK for Rust (v0.13.0). Use for creating, managing, and using cryptographic keys including RSA, EC, and HSM-protected keys.
+  Triggers: "keyvault keys rust", "KeyClient rust", "create key rust", "encrypt rust", "wrap key rust", "sign rust".
 ---
 
 # Azure Key Vault Keys SDK for Rust
 
-Client library for Azure Key Vault Keys — secure storage and management of cryptographic keys.
+> `azure_security_keyvault_keys` v0.13.0 — Secure storage and management of cryptographic keys.
 
 ## Installation
 
 ```sh
-cargo add azure_security_keyvault_keys azure_identity
+cargo add azure_security_keyvault_keys azure_identity tokio futures
 ```
 
 ## Environment Variables
@@ -26,83 +21,83 @@ cargo add azure_security_keyvault_keys azure_identity
 AZURE_KEYVAULT_URL=https://<vault-name>.vault.azure.net/
 ```
 
-## Authentication
+## Client Setup
 
 ```rust
 use azure_identity::DeveloperToolsCredential;
 use azure_security_keyvault_keys::KeyClient;
 
-let credential = DeveloperToolsCredential::new(None)?;
-let client = KeyClient::new(
-    "https://<vault-name>.vault.azure.net/",
-    credential.clone(),
-    None,
-)?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let credential = DeveloperToolsCredential::new(None)?;
+    let client = KeyClient::new(
+        "https://<your-key-vault-name>.vault.azure.net/",
+        credential.clone(),
+        None,
+    )?;
+
+    let key = client
+        .get_key("key-name", None)
+        .await?
+        .into_model()?;
+    println!("JWT: {:?}", key.key);
+
+    Ok(())
+}
 ```
 
-## Key Types
-
-| Type    | Description                               |
-| ------- | ----------------------------------------- |
-| RSA     | RSA keys (2048, 3072, 4096 bits)          |
-| EC      | Elliptic curve keys (P-256, P-384, P-521) |
-| RSA-HSM | HSM-protected RSA keys                    |
-| EC-HSM  | HSM-protected EC keys                     |
-
-## Core Operations
-
-### Get Key
+## Create Key
 
 ```rust
-let key = client
-    .get_key("key-name", None)
-    .await?
-    .into_model()?;
-
-println!("Key ID: {:?}", key.key.as_ref().map(|k| &k.kid));
-```
-
-### Create Key
-
-```rust
-use azure_security_keyvault_keys::models::{CreateKeyParameters, KeyType};
-
-let params = CreateKeyParameters {
-    kty: Some(KeyType::Rsa),
-    key_size: Some(2048),
-    ..Default::default()
+use azure_security_keyvault_keys::{
+    models::{CreateKeyParameters, CurveName, KeyType},
+    ResourceExt,
 };
 
-let key = client
-    .create_key("key-name", params.try_into()?, None)
-    .await?
-    .into_model()?;
-```
-
-### Create EC Key
-
-```rust
-use azure_security_keyvault_keys::models::{CreateKeyParameters, KeyType, CurveName};
-
-let params = CreateKeyParameters {
+// Create an EC key
+let body = CreateKeyParameters {
     kty: Some(KeyType::Ec),
     curve: Some(CurveName::P256),
     ..Default::default()
 };
 
 let key = client
-    .create_key("ec-key", params.try_into()?, None)
+    .create_key("key-name", body.try_into()?, None)
+    .await?
+    .into_model()?;
+
+println!(
+    "Key Name: {:?}, Type: {:?}, Version: {:?}",
+    key.resource_id()?.name,
+    key.key.as_ref().map(|k| k.kty.as_ref()),
+    key.resource_id()?.version,
+);
+```
+
+## Update Key Properties
+
+```rust
+use azure_security_keyvault_keys::models::UpdateKeyPropertiesParameters;
+use std::collections::HashMap;
+
+let key_update_parameters = UpdateKeyPropertiesParameters {
+    tags: Some(HashMap::from_iter(vec![("tag-name".into(), "tag-value".into())])),
+    ..Default::default()
+};
+
+client
+    .update_key_properties("key-name", key_update_parameters.try_into()?, None)
     .await?
     .into_model()?;
 ```
 
-### Delete Key
+## Delete Key
 
 ```rust
 client.delete_key("key-name", None).await?;
 ```
 
-### List Keys
+## List Keys
 
 ```rust
 use azure_security_keyvault_keys::ResourceExt;
@@ -111,73 +106,77 @@ use futures::TryStreamExt;
 let mut pager = client.list_key_properties(None)?.into_stream();
 while let Some(key) = pager.try_next().await? {
     let name = key.resource_id()?.name;
-    println!("Key: {}", name);
+    println!("Found Key with Name: {}", name);
 }
 ```
 
-### Backup Key
+## Encrypt and Decrypt (Wrap/Unwrap)
+
+Key Vault performs crypto operations server-side — the private key never leaves the HSM:
 
 ```rust
-let backup = client.backup_key("key-name", None).await?;
-// Store backup.value safely
-```
-
-### Restore Key
-
-```rust
-use azure_security_keyvault_keys::models::RestoreKeyParameters;
-
-let params = RestoreKeyParameters {
-    key_bundle_backup: backup_bytes,
+use azure_security_keyvault_keys::{
+    models::{
+        CreateKeyParameters, EncryptionAlgorithm, KeyOperationParameters, KeyType,
+    },
+    ResourceExt,
 };
+use rand::random;
 
-client.restore_key(params.try_into()?, None).await?;
-```
-
-## Cryptographic Operations
-
-Key Vault can perform crypto operations without exposing the private key:
-
-```rust
-use azure_security_keyvault_keys::models::{
-    CreateKeyParameters, EncryptionAlgorithm, KeyOperationParameters, KeyType,
-};
-use azure_security_keyvault_keys::ResourceExt;
-
-// Create a KEK
+// Create a key encryption key (KEK) using RSA
 let body = CreateKeyParameters {
     kty: Some(KeyType::Rsa),
     key_size: Some(2048),
     ..Default::default()
 };
+
 let key = client
-    .create_key("kek-name", body.try_into()?, None)
+    .create_key("key-name", body.try_into()?, None)
     .await?
     .into_model()?;
 let key_version = key.resource_id()?.version.expect("key version required");
 
-// Wrap a key
-let parameters = KeyOperationParameters {
+// Generate a symmetric data encryption key (DEK)
+let dek = random::<u32>().to_le_bytes().to_vec();
+
+// Wrap the DEK
+let mut parameters = KeyOperationParameters {
     algorithm: Some(EncryptionAlgorithm::RsaOaep256),
-    value: Some(data_to_wrap),
+    value: Some(dek.clone()),
     ..Default::default()
 };
 let wrapped = client
-    .wrap_key("kek-name", &key_version, parameters.try_into()?, None)
+    .wrap_key("key-name", &key_version, parameters.clone().try_into()?, None)
     .await?
     .into_model()?;
 
-// Unwrap a key
-let parameters = KeyOperationParameters {
-    algorithm: Some(EncryptionAlgorithm::RsaOaep256),
-    value: wrapped.result,
-    ..Default::default()
-};
+assert!(matches!(wrapped.result.as_ref(), Some(result) if !result.is_empty()));
+
+// Unwrap the DEK
+parameters.value = wrapped.result;
 let unwrapped = client
-    .unwrap_key("kek-name", &key_version, parameters.try_into()?, None)
+    .unwrap_key("key-name", &key_version, parameters.try_into()?, None)
     .await?
     .into_model()?;
+
+assert!(matches!(unwrapped.result, Some(result) if result.eq(&dek)));
 ```
+
+## Key Types
+
+| Type      | Description                               |
+| --------- | ----------------------------------------- |
+| `Rsa`     | RSA keys (2048, 3072, 4096 bits)          |
+| `Ec`      | Elliptic curve keys (P-256, P-384, P-521) |
+| `RsaHsm`  | HSM-protected RSA keys                    |
+| `EcHsm`   | HSM-protected EC keys                     |
+
+## RBAC Permissions
+
+| Role                      | Access                     |
+| ------------------------- | -------------------------- |
+| `Key Vault Crypto User`  | Use keys for crypto ops    |
+| `Key Vault Crypto Officer` | Full CRUD on keys          |
 
 ## Best Practices
 
@@ -185,16 +184,7 @@ let unwrapped = client
 2. **Use HSM keys for sensitive workloads** — hardware-protected keys
 3. **Use EC for signing** — more efficient than RSA
 4. **Use RSA for encryption** — when encrypting data
-5. **Backup keys** — for disaster recovery
-6. **Enable soft delete** — required for production vaults
-7. **Use key rotation** — create new versions periodically
-
-## RBAC Permissions
-
-Assign these Key Vault roles:
-
-- `Key Vault Crypto User` — use keys for crypto operations
-- `Key Vault Crypto Officer` — full CRUD on keys
+5. **Use `ResourceExt`** — for extracting key names and versions from IDs
 
 ## Reference Links
 

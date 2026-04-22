@@ -1,23 +1,18 @@
 ---
 name: azure-keyvault-certificates-rust
 description: |
-  Azure Key Vault Certificates SDK for Rust. Use for creating, importing, and managing certificates.
+  Azure Key Vault Certificates SDK for Rust (v0.12.0). Use for creating, importing, and managing certificates.
   Triggers: "keyvault certificates rust", "CertificateClient rust", "create certificate rust", "import certificate rust".
-license: MIT
-metadata:
-  author: Microsoft
-  version: "0.12.0"
-  package: azure_security_keyvault_certificates
 ---
 
 # Azure Key Vault Certificates SDK for Rust
 
-Client library for Azure Key Vault Certificates — secure storage and management of certificates.
+> `azure_security_keyvault_certificates` v0.12.0 — Secure storage and management of certificates.
 
 ## Installation
 
 ```sh
-cargo add azure_security_keyvault_certificates azure_identity
+cargo add azure_security_keyvault_certificates azure_identity tokio futures
 ```
 
 ## Environment Variables
@@ -26,153 +21,191 @@ cargo add azure_security_keyvault_certificates azure_identity
 AZURE_KEYVAULT_URL=https://<vault-name>.vault.azure.net/
 ```
 
-## Authentication
-
-```rust
-use azure_identity::DeveloperToolsCredential;
-use azure_security_keyvault_certificates::CertificateClient;
-
-let credential = DeveloperToolsCredential::new(None)?;
-let client = CertificateClient::new(
-    "https://<vault-name>.vault.azure.net/",
-    credential.clone(),
-    None,
-)?;
-```
-
-## Core Operations
-
-### Get Certificate
+## Client Setup
 
 ```rust
 use azure_core::base64;
+use azure_identity::DeveloperToolsCredential;
+use azure_security_keyvault_certificates::CertificateClient;
 
-let certificate = client
-    .get_certificate("certificate-name", None)
-    .await?
-    .into_model()?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let credential = DeveloperToolsCredential::new(None)?;
+    let client = CertificateClient::new(
+        "https://<your-key-vault-name>.vault.azure.net/",
+        credential.clone(),
+        None,
+    )?;
 
-println!(
-    "Thumbprint: {:?}",
-    certificate.x509_thumbprint.map(base64::encode_url_safe)
-);
+    let certificate = client
+        .get_certificate("certificate-name", None)
+        .await?
+        .into_model()?;
+    println!(
+        "Thumbprint: {:?}",
+        certificate.x509_thumbprint.map(base64::encode_url_safe)
+    );
+
+    Ok(())
+}
 ```
 
-### Create Certificate
+## Create Self-Signed Certificate
+
+`create_certificate` returns a `Poller` — note the `?` before `.await?`:
 
 ```rust
 use azure_security_keyvault_certificates::models::{
-    CreateCertificateParameters, CertificatePolicy,
-    IssuerParameters, X509CertificateProperties,
+    CertificatePolicy, CreateCertificateParameters, IssuerParameters, X509CertificateProperties,
 };
 
 let policy = CertificatePolicy {
+    x509_certificate_properties: Some(X509CertificateProperties {
+        subject: Some("CN=DefaultPolicy".into()),
+        ..Default::default()
+    }),
     issuer_parameters: Some(IssuerParameters {
         name: Some("Self".into()),
         ..Default::default()
     }),
-    x509_certificate_properties: Some(X509CertificateProperties {
-        subject: Some("CN=example.com".into()),
-        ..Default::default()
-    }),
     ..Default::default()
 };
-
-let params = CreateCertificateParameters {
+let body = CreateCertificateParameters {
     certificate_policy: Some(policy),
     ..Default::default()
 };
 
+// Wait for the certificate operation to complete.
+// The Poller implements futures::Stream and automatically waits between polls.
 let certificate = client
-    .create_certificate("cert-name", params.try_into()?, None)?
+    .create_certificate("certificate-name", body.try_into()?, None)?
     .await?
     .into_model()?;
 ```
 
-### Import Certificate
+## Update Certificate Properties
 
 ```rust
-use azure_security_keyvault_certificates::models::ImportCertificateParameters;
+use azure_security_keyvault_certificates::models::UpdateCertificatePropertiesParameters;
+use std::collections::HashMap;
 
-let params = ImportCertificateParameters {
-    base64_encoded_certificate: Some(base64_cert_data),
-    password: Some("optional-password".into()),
+let certificate_update_parameters = UpdateCertificatePropertiesParameters {
+    tags: Some(HashMap::from_iter(vec![("tag-name".into(), "tag-value".into())])),
     ..Default::default()
 };
 
-let certificate = client
-    .import_certificate("cert-name", params.try_into()?, None)
+client
+    .update_certificate_properties(
+        "certificate-name",
+        certificate_update_parameters.try_into()?,
+        None,
+    )
     .await?
     .into_model()?;
 ```
 
-### Delete Certificate
+## Delete Certificate
 
 ```rust
 client.delete_certificate("certificate-name", None).await?;
 ```
 
-### List Certificates
+## List Certificates
 
 ```rust
 use azure_security_keyvault_certificates::ResourceExt;
 use futures::TryStreamExt;
 
 let mut pager = client.list_certificate_properties(None)?.into_stream();
-while let Some(cert) = pager.try_next().await? {
-    let name = cert.resource_id()?.name;
-    println!("Certificate: {}", name);
+while let Some(certificate) = pager.try_next().await? {
+    let name = certificate.resource_id()?.name;
+    println!("Found Certificate with Name: {}", name);
 }
 ```
 
-### Get Certificate Policy
+## Key Operations Using Certificates
+
+Sign data using an EC certificate key via the `KeyClient`:
 
 ```rust
-let policy = client
-    .get_certificate_policy("certificate-name", None)
+use azure_security_keyvault_certificates::{
+    models::{
+        CertificatePolicy, CreateCertificateParameters, CurveName, IssuerParameters,
+        KeyProperties, KeyType, KeyUsageType, X509CertificateProperties,
+    },
+    ResourceExt,
+};
+use azure_security_keyvault_keys::models::{SignParameters, SignatureAlgorithm};
+use openssl::sha::sha256;
+
+let policy = CertificatePolicy {
+    x509_certificate_properties: Some(X509CertificateProperties {
+        subject: Some("CN=DefaultPolicy".into()),
+        key_usage: Some(vec![KeyUsageType::DigitalSignature]),
+        ..Default::default()
+    }),
+    issuer_parameters: Some(IssuerParameters {
+        name: Some("Self".into()),
+        ..Default::default()
+    }),
+    key_properties: Some(KeyProperties {
+        key_type: Some(KeyType::Ec),
+        curve: Some(CurveName::P256),
+        ..Default::default()
+    }),
+    ..Default::default()
+};
+
+let body = CreateCertificateParameters {
+    certificate_policy: Some(policy),
+    ..Default::default()
+};
+
+let certificate = client
+    .create_certificate("ec-signing-certificate", body.try_into()?, None)?
+    .await?
+    .into_model()?;
+let certificate_version = certificate
+    .resource_id()?
+    .version
+    .expect("certificate version required");
+
+let digest = sha256("plaintext".as_bytes()).to_vec();
+
+let body = SignParameters {
+    algorithm: Some(SignatureAlgorithm::Es256),
+    value: Some(digest),
+};
+
+let signature = key_client
+    .sign("ec-signing-certificate", &certificate_version, body.try_into()?, None)
     .await?
     .into_model()?;
 ```
 
-### Update Certificate Policy
+## Error Handling
 
 ```rust
-use azure_security_keyvault_certificates::models::UpdateCertificatePolicyParameters;
-
-let params = UpdateCertificatePolicyParameters {
-    // Update policy properties
-    ..Default::default()
-};
-
-client
-    .update_certificate_policy("cert-name", params.try_into()?, None)
-    .await?;
+match client.get_certificate("certificate-name", None).await {
+    Ok(response) => println!("Certificate: {:#?}", response.into_model()?.x509_thumbprint),
+    Err(err) => println!("Error: {:#?}", err.into_inner()?),
+}
 ```
-
-## Certificate Lifecycle
-
-1. **Create** — generates new certificate with policy
-2. **Import** — import existing PFX/PEM certificate
-3. **Get** — retrieve certificate (public key only)
-4. **Update** — modify certificate properties
-5. **Delete** — soft delete (recoverable)
-6. **Purge** — permanent deletion
-
-## Best Practices
-
-1. **Use Entra ID auth** — `DeveloperToolsCredential` for dev
-2. **Use managed certificates** — auto-renewal with supported issuers
-3. **Set proper validity period** — balance security and maintenance
-4. **Use certificate policies** — define renewal and key properties
-5. **Monitor expiration** — set up alerts for expiring certificates
-6. **Enable soft delete** — required for production vaults
 
 ## RBAC Permissions
 
-Assign these Key Vault roles:
+| Role                            | Access                     |
+| ------------------------------- | -------------------------- |
+| `Key Vault Certificates Officer` | Full CRUD on certificates  |
+| `Key Vault Reader`              | Read certificate metadata  |
 
-- `Key Vault Certificates Officer` — full CRUD on certificates
-- `Key Vault Reader` — read certificate metadata
+## Best Practices
+
+1. **Use Entra ID auth** — `DeveloperToolsCredential` for dev, `ManagedIdentityCredential` for production
+2. **Note the `?` before `.await?` on `create_certificate`** — it returns a Poller
+3. **Use `ResourceExt`** — for extracting names and versions from resource IDs
+4. **Use managed certificates** — auto-renewal with supported issuers
+5. **Monitor expiration** — set up alerts for expiring certificates
 
 ## Reference Links
 

@@ -1,46 +1,46 @@
 ---
 name: azure-storage-blob-rust
 description: |
-  Azure Blob Storage SDK for Rust. Use for uploading, downloading, and managing blobs and containers.
-  Triggers: "blob storage rust", "BlobClient rust", "upload blob rust", "download blob rust", "container rust".
-license: MIT
-metadata:
-  author: Microsoft
-  version: "0.11.0"
-  package: azure_storage_blob
+  Azure Blob Storage SDK for Rust (v0.11.0). Use for uploading, downloading, and managing blobs and containers.
+  Triggers: "blob storage rust", "BlobClient rust", "upload blob rust", "download blob rust", "storage container rust".
 ---
 
 # Azure Blob Storage SDK for Rust
 
-Client library for Azure Blob Storage — Microsoft's object storage solution for the cloud.
+> `azure_storage_blob` v0.11.0 — Client library for Azure Blob Storage.
+
+> **Warning:** This crate is under active development and not suitable for production environments.
 
 ## Installation
 
 ```sh
-cargo add azure_storage_blob azure_identity
+cargo add azure_storage_blob azure_identity tokio
 ```
 
 ## Environment Variables
 
 ```bash
-AZURE_STORAGE_ACCOUNT_NAME=<storage-account-name>
-# Endpoint: https://<account>.blob.core.windows.net/
+AZURE_STORAGE_ENDPOINT=https://<account>.blob.core.windows.net/
 ```
 
 ## Authentication
 
 ```rust
-use azure_identity::DeveloperToolsCredential;
 use azure_storage_blob::{BlobClient, BlobClientOptions};
+use azure_identity::DeveloperToolsCredential;
 
-let credential = DeveloperToolsCredential::new(None)?;
-let blob_client = BlobClient::new(
-    "https://<account>.blob.core.windows.net/",
-    "container-name",
-    "blob-name",
-    Some(credential),
-    Some(BlobClientOptions::default()),
-)?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let credential = DeveloperToolsCredential::new(None)?;
+    let blob_client = BlobClient::new(
+        "https://<storage_account_name>.blob.core.windows.net/",
+        "container_name",
+        "blob_name",
+        Some(credential),
+        Some(BlobClientOptions::default()),
+    )?;
+    Ok(())
+}
 ```
 
 ## Client Types
@@ -51,38 +51,47 @@ let blob_client = BlobClient::new(
 | `BlobContainerClient` | Container operations, list blobs          |
 | `BlobClient`          | Individual blob operations                |
 
-## Core Operations
-
-### Upload Blob
+## Upload Blob
 
 ```rust
 use azure_core::http::RequestContent;
+use azure_storage_blob::{BlobClient, BlobClientOptions};
+use azure_identity::DeveloperToolsCredential;
 
-let data = b"hello world";
-blob_client
-    .upload(
-        RequestContent::from(data.to_vec()),
-        None,
-    )
-    .await?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let credential = DeveloperToolsCredential::new(None)?;
+    let blob_client = BlobClient::new(
+        "https://<storage_account_name>.blob.core.windows.net/",
+        "container_name",
+        "blob_name",
+        Some(credential),
+        Some(BlobClientOptions::default()),
+    )?;
+
+    let data = b"hello world";
+    blob_client
+        .upload(
+            RequestContent::from(data.to_vec()),
+            None,
+        )
+        .await?;
+    Ok(())
+}
 ```
 
-### Download Blob
+## Download Blob / Get Properties
 
 ```rust
+// Get blob properties
+let blob_properties = blob_client.get_properties(None).await?;
+
+// Download blob content
 let response = blob_client.download(None).await?;
 let content = response.into_body().collect_bytes().await?;
-println!("Content: {:?}", content);
 ```
 
-### Get Blob Properties
-
-```rust
-let properties = blob_client.get_properties(None).await?;
-println!("Content-Length: {:?}", properties.content_length);
-```
-
-### Delete Blob
+## Delete Blob
 
 ```rust
 blob_client.delete(None).await?;
@@ -110,26 +119,27 @@ while let Some(blob) = pager.try_next().await? {
 }
 ```
 
-## Best Practices
-
-1. **Use Entra ID auth** — `DeveloperToolsCredential` for dev, `ManagedIdentityCredential` for production
-2. **Specify content length** — required for uploads
-3. **Use `RequestContent::from()`** — to wrap upload data
-4. **Handle async operations** — use `tokio` runtime
-5. **Check RBAC permissions** — ensure "Storage Blob Data Contributor" role
-
 ## RBAC Permissions
 
 For Entra ID auth, assign one of these roles:
 
-- `Storage Blob Data Reader` — read-only
-- `Storage Blob Data Contributor` — read/write
-- `Storage Blob Data Owner` — full access including RBAC
+| Role                            | Access                     |
+| ------------------------------- | -------------------------- |
+| `Storage Blob Data Reader`      | Read-only                  |
+| `Storage Blob Data Contributor` | Read/write                 |
+| `Storage Blob Data Owner`       | Full access including RBAC |
+
+## Best Practices
+
+1. **Use Entra ID auth** — `DeveloperToolsCredential` for dev, `ManagedIdentityCredential` for production
+2. **Use `RequestContent::from()`** — to wrap upload data
+3. **Assign RBAC roles** — ensure "Storage Blob Data Contributor" for write access
+4. **Reuse clients** — clients are thread-safe
 
 ## Reference Links
 
-| Resource      | Link                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------ |
-| API Reference | https://docs.rs/azure_storage_blob                                                   |
-| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/storage/azure_storage_blob |
-| crates.io     | https://crates.io/crates/azure_storage_blob                                          |
+| Resource      | Link                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| API Reference | https://docs.rs/azure_storage_blob                                                    |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/storage/azure_storage_blob  |
+| crates.io     | https://crates.io/crates/azure_storage_blob                                           |

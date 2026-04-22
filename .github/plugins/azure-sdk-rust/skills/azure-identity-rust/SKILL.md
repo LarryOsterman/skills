@@ -1,29 +1,26 @@
 ---
 name: azure-identity-rust
 description: |
-  Azure Identity SDK for Rust authentication. Use for DeveloperToolsCredential, ManagedIdentityCredential, ClientSecretCredential, and token-based authentication.
-  Triggers: "azure-identity", "DeveloperToolsCredential", "authentication rust", "managed identity rust", "credential rust".
-license: MIT
-metadata:
-  author: Microsoft
-  version: "0.34.0"
-  package: azure_identity
+  Azure Identity SDK for Rust (v0.34.0). Use for DeveloperToolsCredential, ManagedIdentityCredential, ClientSecretCredential, and token-based auth with Azure services.
+  Triggers: "azure identity rust", "DeveloperToolsCredential", "authentication rust", "managed identity rust", "credential rust".
 ---
 
 # Azure Identity SDK for Rust
 
-Authentication library for Azure SDK clients using Microsoft Entra ID (formerly Azure AD).
+> `azure_identity` v0.34.0 — Authentication for Azure SDK clients using Microsoft Entra ID.
+
+> **Note:** Rust SDK does not have `DefaultAzureCredential`. Use `DeveloperToolsCredential` for local dev.
 
 ## Installation
 
 ```sh
-cargo add azure_identity
+cargo add azure_identity azure_core tokio
 ```
 
 ## Environment Variables
 
 ```bash
-# Service Principal (for production/CI)
+# Service Principal (for CI/production)
 AZURE_TENANT_ID=<your-tenant-id>
 AZURE_CLIENT_ID=<your-client-id>
 AZURE_CLIENT_SECRET=<your-client-secret>
@@ -34,32 +31,46 @@ AZURE_CLIENT_ID=<managed-identity-client-id>
 
 ## DeveloperToolsCredential
 
-The recommended credential for local development. Tries developer tools in order (Azure CLI, Azure Developer CLI):
+Recommended for local development. Tries Azure CLI then Azure Developer CLI:
 
 ```rust
 use azure_identity::DeveloperToolsCredential;
 use azure_security_keyvault_secrets::SecretClient;
 
-let credential = DeveloperToolsCredential::new(None)?;
-let client = SecretClient::new(
-    "https://my-vault.vault.azure.net/",
-    credential.clone(),
-    None,
-)?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let credential = DeveloperToolsCredential::new(None)?;
+    let client = SecretClient::new(
+        "https://<your-key-vault-name>.vault.azure.net/",
+        credential.clone(),
+        None,
+    )?;
+
+    let secret = client.get_secret("secret-name", None).await?.into_model()?;
+    println!("Secret: {:?}", secret.value);
+
+    Ok(())
+}
+```
+
+Ensure you are logged in first:
+
+```sh
+az login
 ```
 
 ### Credential Chain Order
 
-| Order | Credential                  | Environment      |
+| Order | Credential                  | Login Command    |
 | ----- | --------------------------- | ---------------- |
 | 1     | AzureCliCredential          | `az login`       |
 | 2     | AzureDeveloperCliCredential | `azd auth login` |
 
 ## Credential Types
 
-| Credential                    | Usage                                  |
+| Credential                    | Use Case                               |
 | ----------------------------- | -------------------------------------- |
-| `DeveloperToolsCredential`    | Local development - tries CLI tools    |
+| `DeveloperToolsCredential`    | Local development — tries CLI tools    |
 | `ManagedIdentityCredential`   | Azure VMs, App Service, Functions, AKS |
 | `WorkloadIdentityCredential`  | Kubernetes workload identity           |
 | `ClientSecretCredential`      | Service principal with secret          |
@@ -71,7 +82,7 @@ let client = SecretClient::new(
 
 ## ManagedIdentityCredential
 
-For Azure-hosted resources:
+For Azure-hosted resources (VMs, App Service, AKS):
 
 ```rust
 use azure_identity::ManagedIdentityCredential;
@@ -89,7 +100,7 @@ let credential = ManagedIdentityCredential::new(Some(options))?;
 
 ## ClientSecretCredential
 
-For service principal with secret:
+For service principal authentication:
 
 ```rust
 use azure_identity::ClientSecretCredential;
@@ -104,16 +115,15 @@ let credential = ClientSecretCredential::new(
 
 ## Best Practices
 
-1. **Use `DeveloperToolsCredential` for local dev** — automatically picks up Azure CLI
+1. **Use `DeveloperToolsCredential` for local dev** — automatically picks up Azure CLI login
 2. **Use `ManagedIdentityCredential` in production** — no secrets to manage
 3. **Clone credentials** — credentials are `Arc`-wrapped and cheap to clone
-4. **Reuse credential instances** — same credential can be used with multiple clients
-5. **Use `tokio` feature** — `cargo add azure_identity --features tokio`
+4. **Reuse credential instances** — same credential works with multiple clients
 
 ## Reference Links
 
-| Resource      | Link                                                                              |
-| ------------- | --------------------------------------------------------------------------------- |
-| API Reference | https://docs.rs/azure_identity                                                    |
-| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/identity/azure_identity |
-| crates.io     | https://crates.io/crates/azure_identity                                           |
+| Resource      | Link                                                                               |
+| ------------- | ---------------------------------------------------------------------------------- |
+| API Reference | https://docs.rs/azure_identity                                                     |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/identity/azure_identity  |
+| crates.io     | https://crates.io/crates/azure_identity                                            |

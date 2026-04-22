@@ -1,23 +1,18 @@
 ---
 name: azure-eventhub-rust
 description: |
-  Azure Event Hubs SDK for Rust. Use for sending and receiving events, streaming data ingestion.
+  Azure Event Hubs SDK for Rust (v0.13.0). Use for sending and receiving events, streaming data ingestion, and batch processing.
   Triggers: "event hubs rust", "ProducerClient rust", "ConsumerClient rust", "send event rust", "streaming rust".
-license: MIT
-metadata:
-  author: Microsoft
-  version: "0.13.0"
-  package: azure_messaging_eventhubs
 ---
 
 # Azure Event Hubs SDK for Rust
 
-Client library for Azure Event Hubs — big data streaming platform and event ingestion service.
+> `azure_messaging_eventhubs` v0.13.0 — Client library for Azure Event Hubs.
 
 ## Installation
 
 ```sh
-cargo add azure_messaging_eventhubs azure_identity
+cargo add azure_messaging_eventhubs azure_identity tokio futures
 ```
 
 ## Environment Variables
@@ -29,97 +24,105 @@ EVENTHUB_NAME=<eventhub-name>
 
 ## Key Concepts
 
-- **Namespace** — container for Event Hubs
-- **Event Hub** — stream of events partitioned for parallel processing
-- **Partition** — ordered sequence of events
-- **Producer** — sends events to Event Hub
-- **Consumer** — receives events from partitions
+| Concept       | Description                                         |
+| ------------- | --------------------------------------------------- |
+| **Namespace** | Container for one or more Event Hubs                |
+| **Event Hub** | Stream of events, partitioned for parallel reads    |
+| **Partition** | Ordered, append-only sequence of events             |
+| **Producer**  | Sends events via `ProducerClient`                   |
+| **Consumer**  | Receives events from partitions via `ConsumerClient` |
 
-## Producer Client
-
-### Create Producer
+## Producer — Send Events
 
 ```rust
 use azure_identity::DeveloperToolsCredential;
 use azure_messaging_eventhubs::ProducerClient;
 
-let credential = DeveloperToolsCredential::new(None)?;
-let producer = ProducerClient::builder()
-    .open("<namespace>.servicebus.windows.net", "eventhub-name", credential.clone())
-    .await?;
-```
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let host = "<EVENTHUBS_HOST>";
+    let eventhub = "<EVENTHUB_NAME>";
 
-### Send Single Event
+    let credential = DeveloperToolsCredential::new(None)?;
 
-```rust
-producer.send_event(vec![1, 2, 3, 4], None).await?;
+    let producer = ProducerClient::builder()
+        .open(host, eventhub, credential.clone())
+        .await?;
+
+    // Send a single event
+    producer.send_event(vec![1, 2, 3, 4], None).await?;
+
+    Ok(())
+}
 ```
 
 ### Send Batch
 
 ```rust
 let batch = producer.create_batch(None).await?;
-batch.try_add_event_data(b"event 1".to_vec(), None)?;
-batch.try_add_event_data(b"event 2".to_vec(), None)?;
+assert_eq!(batch.len(), 0);
+assert!(batch.try_add_event_data(vec![1, 2, 3, 4], None)?);
 
 producer.send_batch(batch, None).await?;
 ```
 
-## Consumer Client
-
-### Create Consumer
+## Consumer — Receive Events
 
 ```rust
+use azure_identity::DeveloperToolsCredential;
 use azure_messaging_eventhubs::ConsumerClient;
 
-let credential = DeveloperToolsCredential::new(None)?;
-let consumer = ConsumerClient::builder()
-    .open("<namespace>.servicebus.windows.net", "eventhub-name", credential.clone())
-    .await?;
-```
+async fn open_consumer() -> Result<ConsumerClient, Box<dyn std::error::Error>> {
+    let host = "<EVENTHUBS_HOST>".to_string();
+    let eventhub = "<EVENTHUB_NAME>".to_string();
 
-### Receive Events
+    let credential = DeveloperToolsCredential::new(None)?;
 
-```rust
-use futures::stream::StreamExt;
-use azure_messaging_eventhubs::{OpenReceiverOptions, StartLocation, StartPosition};
+    let consumer = ConsumerClient::builder()
+        .open(&host, eventhub, credential.clone())
+        .await?;
 
-// Open receiver for specific partition
-let receiver = consumer
-    .open_receiver_on_partition(
-        "0".to_string(),
-        Some(OpenReceiverOptions {
-            start_position: Some(StartPosition {
-                location: StartLocation::Earliest,
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-    )
-    .await?;
-
-// Stream events
-let mut event_stream = receiver.stream_events();
-while let Some(event_result) = event_stream.next().await {
-    match event_result {
-        Ok(event) => println!("Received event: {:?}", event),
-        Err(err) => eprintln!("Error receiving event: {:?}", err),
-    }
+    Ok(consumer)
 }
 ```
 
-### Get Event Hub Properties
+### Receive from Partition
 
 ```rust
-let properties = consumer.get_eventhub_properties(None).await?;
-println!("Partitions: {:?}", properties.partition_ids);
-```
+use futures::stream::StreamExt;
+use azure_messaging_eventhubs::{
+    ConsumerClient, OpenReceiverOptions, StartLocation, StartPosition,
+};
 
-### Get Partition Properties
+async fn receive_events(client: &ConsumerClient) -> Result<(), Box<dyn std::error::Error>> {
+    let message_receiver = client
+        .open_receiver_on_partition(
+            "0".to_string(),
+            Some(OpenReceiverOptions {
+                start_position: Some(StartPosition {
+                    location: StartLocation::Earliest,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+        )
+        .await?;
 
-```rust
-let partition_props = consumer.get_partition_properties("0", None).await?;
-println!("Last sequence number: {}", partition_props.last_enqueued_sequence_number);
+    let mut event_stream = message_receiver.stream_events();
+
+    while let Some(event_result) = event_stream.next().await {
+        match event_result {
+            Ok(event) => {
+                println!("Received event: {:?}", event);
+            }
+            Err(err) => {
+                eprintln!("Error receiving event: {:?}", err);
+            }
+        }
+    }
+
+    Ok(())
+}
 ```
 
 ## Best Practices
@@ -127,9 +130,8 @@ println!("Last sequence number: {}", partition_props.last_enqueued_sequence_numb
 1. **Reuse clients** — create once, send many events
 2. **Use batches** — more efficient than individual sends
 3. **Check batch capacity** — `try_add_event_data` returns false when full
-4. **Process partitions in parallel** — each partition can be consumed independently
+4. **Process partitions in parallel** — each partition consumed independently
 5. **Use consumer groups** — isolate different consuming applications
-6. **Handle checkpointing** — use `azure_messaging_eventhubs_checkpointstore_blob` for distributed consumers
 
 ## Checkpoint Store (Optional)
 
