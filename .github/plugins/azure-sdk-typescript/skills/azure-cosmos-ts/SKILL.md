@@ -34,19 +34,26 @@ COSMOS_DATABASE=<database-name>
 COSMOS_CONTAINER=<container-name>
 # For key-based auth only (prefer AAD)
 COSMOS_KEY=<account-key>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
-### AAD with DefaultAzureCredential (Recommended)
+### Microsoft Entra Token Credential (Recommended)
 
 ```typescript
 import { CosmosClient } from "@azure/cosmos";
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
+
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 const client = new CosmosClient({
   endpoint: process.env.COSMOS_ENDPOINT!,
-  aadCredentials: new DefaultAzureCredential(),
+  aadCredentials: credential,
 });
 ```
 
@@ -411,7 +418,7 @@ import {
 
 ## Best Practices
 
-1. **Use AAD authentication** — Prefer `DefaultAzureCredential` over keys
+1. **Use Microsoft Entra Token Credential** — Use `DefaultAzureCredential` for local development; use `ManagedIdentityCredential` or `WorkloadIdentityCredential` for production
 2. **Always use parameterized queries** — Prevents injection, improves plan caching
 3. **Specify partition key** — Avoid cross-partition queries when possible
 4. **Use bulk operations** — For multiple writes, use `executeBulkOperations`

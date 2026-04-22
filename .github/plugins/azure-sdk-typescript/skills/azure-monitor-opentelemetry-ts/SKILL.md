@@ -29,6 +29,7 @@ npm install @azure/monitor-ingestion
 
 ```bash
 APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=...
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Quick Start (Auto-Instrumentation)
@@ -206,14 +207,20 @@ logs.setGlobalLoggerProvider(loggerProvider);
 ## Custom Logs Ingestion
 
 ```typescript
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
 import { LogsIngestionClient, isAggregateLogsUploadError } from "@azure/monitor-ingestion";
 
 const endpoint = "https://<dce>.ingest.monitor.azure.com";
 const ruleId = "<data-collection-rule-id>";
 const streamName = "Custom-MyTable_CL";
 
-const client = new LogsIngestionClient(endpoint, new DefaultAzureCredential());
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
+
+const client = new LogsIngestionClient(endpoint, credential);
 
 const logs = [
   {

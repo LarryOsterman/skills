@@ -24,17 +24,22 @@ npm install @azure/search-documents @azure/identity
 AZURE_SEARCH_ENDPOINT=https://<service-name>.search.windows.net
 AZURE_SEARCH_INDEX_NAME=my-index
 AZURE_SEARCH_ADMIN_KEY=<admin-key>  # Optional if using Entra ID
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```typescript
 import { SearchClient, SearchIndexClient } from "@azure/search-documents";
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
 
 const endpoint = process.env.AZURE_SEARCH_ENDPOINT!;
 const indexName = process.env.AZURE_SEARCH_INDEX_NAME!;
-const credential = new DefaultAzureCredential();
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 // For searching
 const searchClient = new SearchClient(endpoint, indexName, credential);

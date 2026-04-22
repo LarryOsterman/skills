@@ -23,6 +23,7 @@ npm install @azure-rest/ai-document-intelligence @azure/identity
 ```bash
 DOCUMENT_INTELLIGENCE_ENDPOINT=https://<resource>.cognitiveservices.azure.com
 DOCUMENT_INTELLIGENCE_API_KEY=<api-key>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -33,11 +34,17 @@ DOCUMENT_INTELLIGENCE_API_KEY=<api-key>
 
 ```typescript
 import DocumentIntelligence from "@azure-rest/ai-document-intelligence";
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
+
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 const client = DocumentIntelligence(
   process.env.DOCUMENT_INTELLIGENCE_ENDPOINT!,
-  new DefaultAzureCredential()
+  credential
 );
 ```
 

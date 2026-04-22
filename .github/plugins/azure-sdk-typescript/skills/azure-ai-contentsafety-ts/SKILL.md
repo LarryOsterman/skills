@@ -23,6 +23,7 @@ npm install @azure-rest/ai-content-safety @azure/identity @azure/core-auth
 ```bash
 CONTENT_SAFETY_ENDPOINT=https://<resource>.cognitiveservices.azure.com
 CONTENT_SAFETY_KEY=<api-key>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -45,11 +46,17 @@ const client = ContentSafetyClient(
 
 ```typescript
 import ContentSafetyClient from "@azure-rest/ai-content-safety";
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
+
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 const client = ContentSafetyClient(
   process.env.CONTENT_SAFETY_ENDPOINT!,
-  new DefaultAzureCredential()
+  credential
 );
 ```
 

@@ -35,6 +35,7 @@ AZURE_POSTGRESQL_PASSWORD=<password>
 # For Entra ID authentication
 AZURE_POSTGRESQL_USER=<entra-user>@<server>   # e.g., user@contoso.com
 AZURE_POSTGRESQL_CLIENTID=<managed-identity-client-id>  # For user-assigned identity
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -60,10 +61,13 @@ await client.connect();
 
 ```typescript
 import { Client, Pool } from "pg";
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
 
-// For system-assigned managed identity
-const credential = new DefaultAzureCredential();
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 // For user-assigned managed identity
 // const credential = new DefaultAzureCredential({
@@ -287,7 +291,7 @@ class AzurePostgresPool {
   private config: Omit<PoolConfig, "password">;
 
   constructor(config: Omit<PoolConfig, "password">) {
-    this.credential = new DefaultAzureCredential();
+    this.credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
     this.config = config;
   }
 

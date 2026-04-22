@@ -29,6 +29,7 @@ npm install @azure/identity-vscode
 AZURE_TENANT_ID=<tenant-id>
 AZURE_CLIENT_ID=<client-id>
 AZURE_CLIENT_SECRET=<client-secret>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ### Service Principal (Certificate)
@@ -48,12 +49,16 @@ AZURE_CLIENT_ID=<client-id>
 AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/tokens/azure-identity
 ```
 
-## DefaultAzureCredential (Recommended)
+## DefaultAzureCredential (Recommended for Local Development)
 
 ```typescript
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
 
-const credential = new DefaultAzureCredential();
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 // Use with any Azure SDK client
 import { BlobServiceClient } from "@azure/storage-blob";
@@ -243,7 +248,7 @@ const credentialChina = new ClientSecretCredential(
 ```typescript
 import { DefaultAzureCredential, getBearerTokenProvider } from "@azure/identity";
 
-const credential = new DefaultAzureCredential();
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
 
 // Create a function that returns tokens
 const getAccessToken = getBearerTokenProvider(
@@ -314,7 +319,7 @@ AzureLogger.log = (...args) => {
 
 ## Best Practices
 
-1. **Use DefaultAzureCredential** - Works in development (CLI) and production (managed identity)
+1. **Use `DefaultAzureCredential` for local development; use `ManagedIdentityCredential` or `WorkloadIdentityCredential` for production**
 2. **Never hardcode credentials** - Use environment variables or managed identity
 3. **Prefer managed identity** - No secrets to manage in production
 4. **Scope credentials appropriately** - Use user-assigned identity for multi-tenant scenarios

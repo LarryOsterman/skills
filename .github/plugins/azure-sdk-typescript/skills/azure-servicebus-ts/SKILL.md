@@ -25,16 +25,23 @@ SERVICEBUS_NAMESPACE=<namespace>.servicebus.windows.net
 SERVICEBUS_QUEUE_NAME=my-queue
 SERVICEBUS_TOPIC_NAME=my-topic
 SERVICEBUS_SUBSCRIPTION_NAME=my-subscription
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```typescript
 import { ServiceBusClient } from "@azure/service-bus";
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
+
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 const fullyQualifiedNamespace = process.env.SERVICEBUS_NAMESPACE!;
-const client = new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+const client = new ServiceBusClient(fullyQualifiedNamespace, credential);
 ```
 
 ## Core Workflow
@@ -221,7 +228,7 @@ const receiver = client.createReceiver("my-queue", { receiveMode: "receiveAndDel
 
 ## Best Practices
 
-1. **Use Entra ID auth** - Avoid connection strings in production
+1. **Use Microsoft Entra Token Credential** - Use `DefaultAzureCredential` for local development; use `ManagedIdentityCredential` or `WorkloadIdentityCredential` for production
 2. **Reuse clients** - Create `ServiceBusClient` once, share across senders/receivers
 3. **Close resources** - Always close senders/receivers when done
 4. **Handle errors** - Implement `processError` callback for subscription receivers

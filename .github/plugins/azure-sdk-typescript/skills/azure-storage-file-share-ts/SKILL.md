@@ -29,6 +29,7 @@ AZURE_STORAGE_ACCOUNT_NAME=<account-name>
 AZURE_STORAGE_ACCOUNT_KEY=<account-key>
 # OR connection string
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -58,16 +59,22 @@ const client = new ShareServiceClient(
 );
 ```
 
-### DefaultAzureCredential
+### Microsoft Entra Token Credential
 
 ```typescript
 import { ShareServiceClient } from "@azure/storage-file-share";
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
+
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 
 const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME!;
 const client = new ShareServiceClient(
   `https://${accountName}.file.core.windows.net`,
-  new DefaultAzureCredential()
+  credential
 );
 ```
 
@@ -475,7 +482,7 @@ import {
 ## Best Practices
 
 1. **Use connection strings for simplicity** — Easiest setup for development
-2. **Use DefaultAzureCredential for production** — Enable managed identity in Azure
+2. **Use `DefaultAzureCredential` for local development; use `ManagedIdentityCredential` or `WorkloadIdentityCredential` for production**
 3. **Set quotas on shares** — Prevent unexpected storage costs
 4. **Use streaming for large files** — `uploadStream`/`downloadToFile` for files > 256MB
 5. **Use ranges for partial updates** — More efficient than full file replacement

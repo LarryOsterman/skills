@@ -25,15 +25,20 @@ npm install @azure/keyvault-keys @azure/identity
 KEY_VAULT_URL=https://<vault-name>.vault.azure.net
 # Or
 AZURE_KEYVAULT_NAME=<vault-name>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```typescript
-import { DefaultAzureCredential } from "@azure/identity";
+import { DefaultAzureCredential, ManagedIdentityCredential } from "@azure/identity";
 import { KeyClient, CryptographyClient } from "@azure/keyvault-keys";
 
-const credential = new DefaultAzureCredential();
+// Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+const credential = new DefaultAzureCredential({requiredEnvVars: ["AZURE_TOKEN_CREDENTIALS"]});
+// Or use a specific credential directly in production:
+// See https://learn.microsoft.com/javascript/api/overview/azure/identity-readme?view=azure-node-latest#credential-classes
+// const credential = new ManagedIdentityCredential();
 const vaultUrl = `https://${process.env.AZURE_KEYVAULT_NAME}.vault.azure.net`;
 
 const keyClient = new KeyClient(vaultUrl, credential);
@@ -265,7 +270,7 @@ try {
 
 ## Best Practices
 
-1. **Use DefaultAzureCredential** - Works across dev and production
+1. **Use `DefaultAzureCredential` for local development; use `ManagedIdentityCredential` or `WorkloadIdentityCredential` for production**
 2. **Enable soft-delete** - Required for production vaults
 3. **Set expiration dates** - On both keys and secrets
 4. **Use key rotation policies** - Automate key rotation
