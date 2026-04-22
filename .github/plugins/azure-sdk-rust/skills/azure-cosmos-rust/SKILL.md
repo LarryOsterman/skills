@@ -6,7 +6,7 @@ description: |
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.0.0"
+  version: "0.32.0"
   package: azure_data_cosmos
 ---
 
@@ -32,23 +32,27 @@ COSMOS_CONTAINER=mycontainer
 
 ```rust
 use azure_identity::DeveloperToolsCredential;
-use azure_data_cosmos::CosmosClient;
+use azure_data_cosmos::{
+    CosmosClient, CosmosAccountReference, CosmosAccountEndpoint, RoutingStrategy,
+};
 
-let credential = DeveloperToolsCredential::new(None)?;
-let client = CosmosClient::new(
-    "https://<account>.documents.azure.com:443/",
-    credential.clone(),
-    None,
-)?;
+let credential: std::sync::Arc<dyn azure_core::credentials::TokenCredential> =
+    DeveloperToolsCredential::new(None)?;
+let endpoint: CosmosAccountEndpoint = "https://<account>.documents.azure.com:443/"
+    .parse()?;
+let account = CosmosAccountReference::with_credential(endpoint, credential);
+let client = CosmosClient::builder()
+    .build(account, RoutingStrategy::ProximityTo("East US".into()))
+    .await?;
 ```
 
 ## Client Hierarchy
 
-| Client | Purpose | Get From |
-|--------|---------|----------|
-| `CosmosClient` | Account-level operations | Direct instantiation |
-| `DatabaseClient` | Database operations | `client.database_client()` |
-| `ContainerClient` | Container/item operations | `database.container_client()` |
+| Client            | Purpose                   | Get From                             |
+| ----------------- | ------------------------- | ------------------------------------ |
+| `CosmosClient`    | Account-level operations  | `CosmosClient::builder().build()`    |
+| `DatabaseClient`  | Database operations       | `client.database_client()`           |
+| `ContainerClient` | Container/item operations | `database.container_client().await?` |
 
 ## Core Workflow
 
@@ -56,7 +60,7 @@ let client = CosmosClient::new(
 
 ```rust
 let database = client.database_client("myDatabase");
-let container = database.container_client("myContainer");
+let container = database.container_client("myContainer").await?;
 ```
 
 ### Create Item
@@ -96,18 +100,6 @@ item.value = "updated".into();
 container.replace_item("partition1", "1", item, None).await?;
 ```
 
-### Patch Item
-
-```rust
-use azure_data_cosmos::models::PatchDocument;
-
-let patch = PatchDocument::default()
-    .with_add("/newField", "newValue")?
-    .with_remove("/oldField")?;
-
-container.patch_item("partition1", "1", patch, None).await?;
-```
-
 ### Delete Item
 
 ```rust
@@ -132,8 +124,8 @@ cargo add azure_data_cosmos --features key_auth
 
 ## Reference Links
 
-| Resource | Link |
-|----------|------|
-| API Reference | https://docs.rs/azure_data_cosmos |
-| Source Code | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/cosmos/azure_data_cosmos |
-| crates.io | https://crates.io/crates/azure_data_cosmos |
+| Resource      | Link                                                                               |
+| ------------- | ---------------------------------------------------------------------------------- |
+| API Reference | https://docs.rs/azure_data_cosmos                                                  |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/cosmos/azure_data_cosmos |
+| crates.io     | https://crates.io/crates/azure_data_cosmos                                         |

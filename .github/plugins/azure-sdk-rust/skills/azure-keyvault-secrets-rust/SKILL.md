@@ -6,7 +6,7 @@ description: |
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.0.0"
+  version: "0.13.0"
   package: azure_security_keyvault_secrets
 ---
 
@@ -98,7 +98,7 @@ client.delete_secret("secret-name", None).await?;
 use azure_security_keyvault_secrets::ResourceExt;
 use futures::TryStreamExt;
 
-let mut pager = client.list_secret_properties(None)?.into_stream();
+let mut pager = client.list_secret_properties(None)?;
 while let Some(secret) = pager.try_next().await? {
     let name = secret.resource_id()?.name;
     println!("Secret: {}", name);
@@ -134,13 +134,14 @@ let secret = client
 ## RBAC Permissions
 
 Assign these Key Vault roles:
+
 - `Key Vault Secrets User` — get and list
 - `Key Vault Secrets Officer` — full CRUD
 
 ## Reference Links
 
-| Resource | Link |
-|----------|------|
-| API Reference | https://docs.rs/azure_security_keyvault_secrets |
-| Source Code | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/keyvault/azure_security_keyvault_secrets |
-| crates.io | https://crates.io/crates/azure_security_keyvault_secrets |
+| Resource      | Link                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| API Reference | https://docs.rs/azure_security_keyvault_secrets                                                    |
+| Source Code   | https://github.com/Azure/azure-sdk-for-rust/tree/main/sdk/keyvault/azure_security_keyvault_secrets |
+| crates.io     | https://crates.io/crates/azure_security_keyvault_secrets                                           |

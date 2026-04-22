@@ -389,7 +389,7 @@ ls -la skills/python/foundry/agents
 
 #### 6.1 Create Acceptance Criteria
 
-**Location:** `.github/skills/<skill-name>/references/acceptance-criteria.md`
+**Location:** `tests/scenarios/<skill-name>/acceptance-criteria.md`
 
 **Source materials** (in priority order):
 
@@ -644,7 +644,7 @@ Before completing a skill:
 
 **Testing:**
 
-- [ ] `references/acceptance-criteria.md` created with correct/incorrect patterns
+- [ ] `tests/scenarios/<skill-name>/acceptance-criteria.md` created with correct/incorrect patterns
 - [ ] `tests/scenarios/<skill-name>/scenarios.yaml` created
 - [ ] All scenarios pass (`pnpm harness <skill> --mock`)
 - [ ] Import paths documented precisely

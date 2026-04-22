@@ -24,8 +24,8 @@ import {
 // Constants
 // =============================================================================
 
-const SKILLS_DIR = ".github/skills";
-const CRITERIA_FILENAME = "references/acceptance-criteria.md";
+const SCENARIOS_DIR = "tests/scenarios";
+const CRITERIA_FILENAME = "acceptance-criteria.md";
 
 // =============================================================================
 // AcceptanceCriteriaLoader
@@ -50,11 +50,11 @@ const CRITERIA_FILENAME = "references/acceptance-criteria.md";
  */
 export class AcceptanceCriteriaLoader {
   private readonly basePath: string;
-  private readonly skillsDir: string;
+  private readonly scenariosDir: string;
 
   constructor(basePath?: string) {
     this.basePath = basePath ?? process.cwd();
-    this.skillsDir = join(this.basePath, SKILLS_DIR);
+    this.scenariosDir = join(this.basePath, SCENARIOS_DIR);
   }
 
   /**
@@ -63,16 +63,16 @@ export class AcceptanceCriteriaLoader {
   listSkillsWithCriteria(): string[] {
     const skills: string[] = [];
 
-    if (!existsSync(this.skillsDir)) {
+    if (!existsSync(this.scenariosDir)) {
       return skills;
     }
 
-    const entries = readdirSync(this.skillsDir, { withFileTypes: true });
+    const entries = readdirSync(this.scenariosDir, { withFileTypes: true });
 
     for (const entry of entries) {
       if (entry.isDirectory() || entry.isSymbolicLink()) {
         const criteriaPath = join(
-          this.skillsDir,
+          this.scenariosDir,
           entry.name,
           CRITERIA_FILENAME
         );
@@ -89,7 +89,7 @@ export class AcceptanceCriteriaLoader {
    * Load acceptance criteria for a skill.
    */
   load(skillName: string): AcceptanceCriteria {
-    const criteriaPath = join(this.skillsDir, skillName, CRITERIA_FILENAME);
+    const criteriaPath = join(this.scenariosDir, skillName, CRITERIA_FILENAME);
 
     if (!existsSync(criteriaPath)) {
       throw new Error(`Acceptance criteria not found: ${criteriaPath}`);

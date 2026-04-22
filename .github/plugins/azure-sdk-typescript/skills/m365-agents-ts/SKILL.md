@@ -6,7 +6,7 @@ license: MIT
 metadata:
   author: Microsoft
   version: "1.0.0"
-  package: '@microsoft/agents-hosting, @microsoft/agents-hosting-express, @microsoft/agents-activity, @microsoft/agents-copilotstudio-client'
+  package: "@microsoft/agents-hosting, @microsoft/agents-hosting-express, @microsoft/agents-activity, @microsoft/agents-copilotstudio-client"
 ---
 
 # Microsoft 365 Agents SDK (TypeScript)
@@ -14,6 +14,7 @@ metadata:
 Build enterprise agents for Microsoft 365, Teams, and Copilot Studio using the Microsoft 365 Agents SDK with Express hosting, AgentApplication routing, streaming responses, and Copilot Studio client integrations.
 
 ## Before implementation
+
 - Use the microsoft-docs MCP to verify the latest API signatures for AgentApplication, startServer, and CopilotStudioClient.
 - Confirm package versions on npm before wiring up samples or templates.
 
@@ -45,7 +46,11 @@ COPILOT_BEARER_TOKEN=<copilot-jwt>
 ## Core Workflow: Express-hosted AgentApplication
 
 ```typescript
-import { AgentApplication, TurnContext, TurnState } from "@microsoft/agents-hosting";
+import {
+  AgentApplication,
+  TurnContext,
+  TurnState,
+} from "@microsoft/agents-hosting";
 import { startServer } from "@microsoft/agents-hosting-express";
 
 const agent = new AgentApplication<TurnState>();
@@ -65,7 +70,11 @@ startServer(agent);
 
 ```typescript
 import { azure } from "@ai-sdk/azure";
-import { AgentApplication, TurnContext, TurnState } from "@microsoft/agents-hosting";
+import {
+  AgentApplication,
+  TurnContext,
+  TurnState,
+} from "@microsoft/agents-hosting";
 import { startServer } from "@microsoft/agents-hosting-express";
 import { streamText } from "ai";
 
@@ -109,7 +118,11 @@ startServer(agent);
 
 ```typescript
 import { Activity, ActivityTypes } from "@microsoft/agents-activity";
-import { AgentApplication, TurnContext, TurnState } from "@microsoft/agents-hosting";
+import {
+  AgentApplication,
+  TurnContext,
+  TurnState,
+} from "@microsoft/agents-hosting";
 
 const agent = new AgentApplication<TurnState>();
 
@@ -155,9 +168,12 @@ const directLine = CopilotStudioWebChat.createConnection(client, {
   showTyping: true,
 });
 
-window.WebChat.renderWebChat({
-  directLine,
-}, document.getElementById("webchat")!);
+window.WebChat.renderWebChat(
+  {
+    directLine,
+  },
+  document.getElementById("webchat")!,
+);
 ```
 
 ## Best Practices
@@ -168,19 +184,13 @@ window.WebChat.renderWebChat({
 4. Reuse CopilotStudioClient instances and cache tokens in your token provider.
 5. Validate invoke payloads before logging or persisting feedback.
 
-## Reference Files
-
-| File | Contents |
-| --- | --- |
-| [references/acceptance-criteria.md](references/acceptance-criteria.md) | Import paths, hosting pipeline, streaming, and Copilot Studio patterns |
-
 ## Reference Links
 
-| Resource | URL |
-| --- | --- |
-| Microsoft 365 Agents SDK | https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/ |
-| JavaScript SDK overview | https://learn.microsoft.com/en-us/javascript/api/overview/agents-overview?view=agents-sdk-js-latest |
-| @microsoft/agents-hosting-express | https://learn.microsoft.com/en-us/javascript/api/%40microsoft/agents-hosting-express?view=agents-sdk-js-latest |
+| Resource                               | URL                                                                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Microsoft 365 Agents SDK               | https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/                                                         |
+| JavaScript SDK overview                | https://learn.microsoft.com/en-us/javascript/api/overview/agents-overview?view=agents-sdk-js-latest                 |
+| @microsoft/agents-hosting-express      | https://learn.microsoft.com/en-us/javascript/api/%40microsoft/agents-hosting-express?view=agents-sdk-js-latest      |
 | @microsoft/agents-copilotstudio-client | https://learn.microsoft.com/en-us/javascript/api/%40microsoft/agents-copilotstudio-client?view=agents-sdk-js-latest |
-| Integrate with Copilot Studio | https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs |
-| GitHub samples | https://github.com/microsoft/Agents/tree/main/samples/nodejs |
+| Integrate with Copilot Studio          | https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs                                       |
+| GitHub samples                         | https://github.com/microsoft/Agents/tree/main/samples/nodejs                                                        |
