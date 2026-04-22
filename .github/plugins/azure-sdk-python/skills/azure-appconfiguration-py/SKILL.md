@@ -26,6 +26,7 @@ pip install azure-appconfiguration
 AZURE_APPCONFIGURATION_CONNECTION_STRING=Endpoint=https://<name>.azconfig.io;Id=...;Secret=...
 # Or for Entra ID:
 AZURE_APPCONFIGURATION_ENDPOINT=https://<name>.azconfig.io
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -43,12 +44,19 @@ client = AzureAppConfigurationClient.from_connection_string(
 ### Entra ID
 
 ```python
+import os
 from azure.appconfiguration import AzureAppConfigurationClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 
 client = AzureAppConfigurationClient(
     base_url=os.environ["AZURE_APPCONFIGURATION_ENDPOINT"],
-    credential=DefaultAzureCredential()
+    credential=credential
 )
 ```
 

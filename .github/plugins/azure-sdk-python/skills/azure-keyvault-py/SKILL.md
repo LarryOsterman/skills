@@ -34,6 +34,7 @@ pip install azure-keyvault-secrets azure-keyvault-keys azure-keyvault-certificat
 
 ```bash
 AZURE_KEYVAULT_URL=https://<vault-name>.vault.azure.net/
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Secrets
@@ -41,10 +42,14 @@ AZURE_KEYVAULT_URL=https://<vault-name>.vault.azure.net/
 ### SecretClient Setup
 
 ```python
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 vault_url = "https://<vault-name>.vault.azure.net/"
 
 client = SecretClient(vault_url=vault_url, credential=credential)

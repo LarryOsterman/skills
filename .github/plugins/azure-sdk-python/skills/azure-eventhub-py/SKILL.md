@@ -29,15 +29,20 @@ EVENT_HUB_FULLY_QUALIFIED_NAMESPACE=<namespace>.servicebus.windows.net
 EVENT_HUB_NAME=my-eventhub
 STORAGE_ACCOUNT_URL=https://<account>.blob.core.windows.net
 CHECKPOINT_CONTAINER=checkpoints
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```python
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.eventhub import EventHubProducerClient, EventHubConsumerClient
 
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 namespace = "<namespace>.servicebus.windows.net"
 eventhub_name = "my-eventhub"
 

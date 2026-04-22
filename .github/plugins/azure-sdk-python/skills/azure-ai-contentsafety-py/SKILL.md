@@ -25,6 +25,7 @@ pip install azure-ai-contentsafety
 ```bash
 CONTENT_SAFETY_ENDPOINT=https://<resource>.cognitiveservices.azure.com
 CONTENT_SAFETY_KEY=<your-api-key>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -46,11 +47,16 @@ client = ContentSafetyClient(
 
 ```python
 from azure.ai.contentsafety import ContentSafetyClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 client = ContentSafetyClient(
     endpoint=os.environ["CONTENT_SAFETY_ENDPOINT"],
-    credential=DefaultAzureCredential()
+    credential=credential
 )
 ```
 

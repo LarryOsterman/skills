@@ -24,15 +24,20 @@ pip install azure-storage-file-datalake azure-identity
 
 ```bash
 AZURE_STORAGE_ACCOUNT_URL=https://<account>.dfs.core.windows.net
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```python
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.storage.filedatalake import DataLakeServiceClient
 
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 account_url = "https://<account>.dfs.core.windows.net"
 
 service_client = DataLakeServiceClient(account_url=account_url, credential=credential)

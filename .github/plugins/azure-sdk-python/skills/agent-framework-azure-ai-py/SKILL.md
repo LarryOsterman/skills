@@ -40,18 +40,23 @@ pip install agent-framework-azure-ai --pre
 export AZURE_AI_PROJECT_ENDPOINT="https://<project>.services.ai.azure.com/api/projects/<project-id>"
 export AZURE_AI_MODEL_DEPLOYMENT_NAME="gpt-4o-mini"
 export BING_CONNECTION_ID="your-bing-connection-id"  # For web search
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```python
-from azure.identity.aio import AzureCliCredential, DefaultAzureCredential
+from azure.identity.aio import AzureCliCredential, DefaultAzureCredential, ManagedIdentityCredential
 
 # Development
 credential = AzureCliCredential()
 
 # Production
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 ```
 
 ## Core Workflow

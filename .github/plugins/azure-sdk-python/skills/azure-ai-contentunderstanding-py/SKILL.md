@@ -24,6 +24,7 @@ pip install azure-ai-contentunderstanding
 
 ```bash
 CONTENTUNDERSTANDING_ENDPOINT=https://<resource>.cognitiveservices.azure.com/
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -31,10 +32,14 @@ CONTENTUNDERSTANDING_ENDPOINT=https://<resource>.cognitiveservices.azure.com/
 ```python
 import os
 from azure.ai.contentunderstanding import ContentUnderstandingClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 
 endpoint = os.environ["CONTENTUNDERSTANDING_ENDPOINT"]
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 client = ContentUnderstandingClient(endpoint=endpoint, credential=credential)
 ```
 

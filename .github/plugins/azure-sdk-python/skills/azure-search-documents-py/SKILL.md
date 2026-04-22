@@ -339,16 +339,21 @@ AZURE_SEARCH_ENDPOINT=https://<search-service>.search.windows.net
 AZURE_SEARCH_INDEX_NAME=<index-name>
 # For API key auth (not recommended for production)
 AZURE_SEARCH_API_KEY=<api-key>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 **DefaultAzureCredential (preferred)**:
 ```python
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.search.documents import SearchClient
 
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 client = SearchClient(endpoint, index_name, credential)
 ```
 

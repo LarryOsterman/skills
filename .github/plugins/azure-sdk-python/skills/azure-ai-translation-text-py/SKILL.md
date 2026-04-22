@@ -27,6 +27,7 @@ AZURE_TRANSLATOR_KEY=<your-api-key>
 AZURE_TRANSLATOR_REGION=<your-region>  # e.g., eastus, westus2
 # Or use custom endpoint
 AZURE_TRANSLATOR_ENDPOINT=https://<resource>.cognitiveservices.azure.com
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -60,11 +61,18 @@ client = TextTranslationClient(
 ### Entra ID (Recommended)
 
 ```python
+import os
 from azure.ai.translation.text import TextTranslationClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 
 client = TextTranslationClient(
-    credential=DefaultAzureCredential(),
+    credential=credential,
     endpoint=os.environ["AZURE_TRANSLATOR_ENDPOINT"]
 )
 ```

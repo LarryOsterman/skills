@@ -26,16 +26,23 @@ pip install azure-ai-ml
 AZURE_SUBSCRIPTION_ID=<your-subscription-id>
 AZURE_RESOURCE_GROUP=<your-resource-group>
 AZURE_ML_WORKSPACE_NAME=<your-workspace-name>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```python
 from azure.ai.ml import MLClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+import os
 
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 ml_client = MLClient(
-    credential=DefaultAzureCredential(),
+    credential=credential,
     subscription_id=os.environ["AZURE_SUBSCRIPTION_ID"],
     resource_group_name=os.environ["AZURE_RESOURCE_GROUP"],
     workspace_name=os.environ["AZURE_ML_WORKSPACE_NAME"]

@@ -24,6 +24,7 @@ pip install azure-containerregistry
 
 ```bash
 AZURE_CONTAINERREGISTRY_ENDPOINT=https://<registry-name>.azurecr.io
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -31,12 +32,19 @@ AZURE_CONTAINERREGISTRY_ENDPOINT=https://<registry-name>.azurecr.io
 ### Entra ID (Recommended)
 
 ```python
+import os
 from azure.containerregistry import ContainerRegistryClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 
 client = ContainerRegistryClient(
     endpoint=os.environ["AZURE_CONTAINERREGISTRY_ENDPOINT"],
-    credential=DefaultAzureCredential()
+    credential=credential
 )
 ```
 

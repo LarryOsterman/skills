@@ -116,8 +116,12 @@ For local development, use `DefaultAzureCredential` which supports multiple auth
 
 ```python
 # Python
-from azure.identity import DefaultAzureCredential
-credential = DefaultAzureCredential()
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 client = ServiceClient(endpoint, credential)
 ```
 
@@ -204,10 +208,14 @@ AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used i
 ## Authentication
 
 \`\`\`python
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.ai.example import ExampleClient
 
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 client = ExampleClient(
 endpoint=os.environ["AZURE_EXAMPLE_ENDPOINT"],
 credential=credential

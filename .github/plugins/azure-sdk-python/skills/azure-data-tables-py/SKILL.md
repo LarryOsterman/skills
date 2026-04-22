@@ -28,15 +28,22 @@ AZURE_STORAGE_ACCOUNT_URL=https://<account>.table.core.windows.net
 
 # Cosmos DB Table API
 COSMOS_TABLE_ENDPOINT=https://<account>.table.cosmos.azure.com
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```python
-from azure.identity import DefaultAzureCredential
+import os
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.data.tables import TableServiceClient, TableClient
 
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
+
 endpoint = "https://<account>.table.core.windows.net"
 
 # Service client (manage tables)

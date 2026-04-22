@@ -29,6 +29,7 @@ AZURE_DOCUMENT_TRANSLATION_KEY=<your-api-key>  # If using API key
 # Storage for source and target documents
 AZURE_SOURCE_CONTAINER_URL=https://<storage>.blob.core.windows.net/<container>?<sas>
 AZURE_TARGET_CONTAINER_URL=https://<storage>.blob.core.windows.net/<container>?<sas>
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
@@ -50,11 +51,16 @@ client = DocumentTranslationClient(endpoint, AzureKeyCredential(key))
 
 ```python
 from azure.ai.translation.document import DocumentTranslationClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
 client = DocumentTranslationClient(
     endpoint=os.environ["AZURE_DOCUMENT_TRANSLATION_ENDPOINT"],
-    credential=DefaultAzureCredential()
+    credential=credential
 )
 ```
 

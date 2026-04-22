@@ -25,15 +25,22 @@ pip install azure-eventgrid azure-identity
 ```bash
 EVENTGRID_TOPIC_ENDPOINT=https://<topic-name>.<region>.eventgrid.azure.net/api/events
 EVENTGRID_NAMESPACE_ENDPOINT=https://<namespace>.<region>.eventgrid.azure.net
+AZURE_TOKEN_CREDENTIALS=prod # Required only if DefaultAzureCredential is used in production
 ```
 
 ## Authentication
 
 ```python
-from azure.identity import DefaultAzureCredential
+import os
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.eventgrid import EventGridPublisherClient
 
-credential = DefaultAzureCredential()
+# Local dev: DefaultAzureCredential. Production: set AZURE_TOKEN_CREDENTIALS=prod or AZURE_TOKEN_CREDENTIALS=<specific_credential>
+credential = DefaultAzureCredential(require_envvar=True)
+# Or use a specific credential directly in production:
+# See https://learn.microsoft.com/python/api/overview/azure/identity-readme?view=azure-python#credential-classes
+# credential = ManagedIdentityCredential()
+
 endpoint = "https://<topic-name>.<region>.eventgrid.azure.net/api/events"
 
 client = EventGridPublisherClient(endpoint, credential)
