@@ -1,486 +1,505 @@
 # Acceptance Criteria: hosted-agents-v2-py
 
-**SDK**: `azure-ai-projects`  
-**Minimum Version**: `>=2.0.0b3`  
-**Repository**: https://github.com/Azure/azure-sdk-for-python
+**Service**: Microsoft Foundry Hosted Agents
+**Primary packages**: `azure-ai-agentserver-responses`, `azure-ai-agentserver-invocations`, `agent-framework-foundry-hosting`, `azure-ai-projects>=2.1.0`
+**Purpose**: Validate refreshed public preview hosted-agent guidance across protocols, frameworks, deployment, and migration.
 
 ---
 
-## 1. Correct Import Patterns
+## 1. Protocol Selection
 
-### 1.1 Client and Model Imports
+### 1.1 Correct Protocol Guidance
 
-#### ✅ CORRECT: All imports from azure.ai.projects
+#### ✅ CORRECT: Responses for conversational agents
 
-```python
-from azure.identity import DefaultAzureCredential
-from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import (
-    ImageBasedHostedAgentDefinition,
-    ProtocolVersionRecord,
-    AgentProtocol,
-)
+```text
+Use the Responses protocol for conversational assistants, multi-turn chat, RAG, tools, streaming, and background processing that fits the OpenAI Responses contract.
 ```
 
-#### ✅ CORRECT: Async imports
+#### ✅ CORRECT: Invocations for arbitrary JSON
 
-```python
-from azure.identity.aio import DefaultAzureCredential
-from azure.ai.projects.aio import AIProjectClient
-from azure.ai.projects.models import (
-    ImageBasedHostedAgentDefinition,
-    ProtocolVersionRecord,
-    AgentProtocol,
-)
+```text
+Use the Invocations protocol for webhooks, structured processing, custom payloads, protocol bridges, custom SSE, and non-OpenAI callers.
 ```
 
-### 1.2 Anti-Patterns (ERRORS)
+#### ✅ CORRECT: Both protocols can be exposed
 
-#### ❌ INCORRECT: Importing from azure.ai.agents
-
-```python
-# WRONG - ImageBasedHostedAgentDefinition is NOT in azure.ai.agents
-from azure.ai.agents.models import ImageBasedHostedAgentDefinition
+```yaml
+protocols:
+  - protocol: responses
+    version: 1.0.0
+  - protocol: invocations
+    version: 1.0.0
 ```
 
-#### ❌ INCORRECT: Importing from azure.ai.agents directly
+### 1.2 Anti-Patterns
 
-```python
-# WRONG - These models are in azure.ai.projects.models
-from azure.ai.agents import (
-    ImageBasedHostedAgentDefinition,
-    ProtocolVersionRecord,
-)
-```
+#### ❌ INCORRECT: Old protocol version
 
-#### ❌ INCORRECT: Wrong module path for AgentProtocol
+Do not use the initial-preview protocol version `v1`; refreshed hosted agents require protocol version `1.0.0`.
 
-```python
-# WRONG - AgentProtocol is in azure.ai.projects.models
-from azure.ai.projects import AgentProtocol
-```
+#### ❌ INCORRECT: Treating Invocations as a chat-history protocol
 
-#### ❌ INCORRECT: Using AgentsClient instead of AIProjectClient
-
-```python
-# WRONG - Hosted agents use AIProjectClient, not AgentsClient
-from azure.ai.agents import AgentsClient
+```text
+Use Invocations for normal chat because Foundry manages conversation history automatically.
 ```
 
 ---
 
-## 2. Client Creation Patterns
+## 2. Protocol Libraries
 
-### 2.1 Correct Client Creation
+### 2.1 Correct Python Imports
 
-#### ✅ CORRECT: AIProjectClient with DefaultAzureCredential
+#### ✅ CORRECT: Responses protocol host
+
+```python
+from azure.ai.agentserver.responses import (
+    CreateResponse,
+    ResponseContext,
+    ResponsesAgentServerHost,
+    TextResponse,
+)
+```
+
+#### ✅ CORRECT: Invocations protocol host
+
+```python
+from azure.ai.agentserver.invocations import InvocationAgentServerHost
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+```
+
+#### ✅ CORRECT: Agent Framework hosting bridge
+
+```python
+from agent_framework import Agent
+from agent_framework.foundry import FoundryChatClient
+from agent_framework_foundry_hosting import ResponsesHostServer
+```
+
+### 2.2 Correct .NET Packages
+
+#### ✅ CORRECT: .NET protocol packages
+
+```bash
+dotnet add package Azure.AI.AgentServer.Responses
+dotnet add package Azure.AI.AgentServer.Invocations
+dotnet add package Azure.Identity
+```
+
+### 2.3 Anti-Patterns
+
+#### ❌ INCORRECT: Removed framework adapter package
+
+```python
+from azure.ai.agentserver.agentframework import from_agent_framework
+```
+
+#### ❌ INCORRECT: Removed LangGraph adapter package
+
+```python
+from azure.ai.agentserver.langgraph import from_langgraph
+```
+
+#### ❌ INCORRECT: Old .NET Agent Framework adapter package
+
+```bash
+dotnet add package Azure.AI.AgentServer.AgentFramework
+```
+
+---
+
+## 3. Agent Framework Pattern
+
+### 3.1 Correct Python Agent Framework Host
+
+#### ✅ CORRECT: `FoundryChatClient` with `ResponsesHostServer`
 
 ```python
 import os
+
+from agent_framework import Agent
+from agent_framework.foundry import FoundryChatClient
+from agent_framework_foundry_hosting import ResponsesHostServer
 from azure.identity import DefaultAzureCredential
-from azure.ai.projects import AIProjectClient
 
-client = AIProjectClient(
-    endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-    credential=DefaultAzureCredential()
+client = FoundryChatClient(
+    project_endpoint=os.environ["FOUNDRY_PROJECT_ENDPOINT"],
+    model=os.environ["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
+    credential=DefaultAzureCredential(),
 )
+
+agent = Agent(
+    client=client,
+    instructions="You are a helpful assistant.",
+    default_options={"store": False},
+)
+
+ResponsesHostServer(agent).run()
 ```
 
-#### ✅ CORRECT: Async client with context manager
+### 3.2 Anti-Patterns
+
+#### ❌ INCORRECT: Initial-preview Agent Framework APIs
 
 ```python
-import os
-from azure.identity.aio import DefaultAzureCredential
-from azure.ai.projects.aio import AIProjectClient
+from azure.ai.agentserver.agentframework import from_agent_framework
+from agent_framework import ChatAgent
+from agent_framework.azure import AzureAIAgentClient
 
-async with DefaultAzureCredential() as credential:
-    async with AIProjectClient(
-        endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-        credential=credential
-    ) as client:
-        # Use client here
-        pass
+agent = ChatAgent(...)
+from_agent_framework(agent).run()
 ```
 
-### 2.2 Anti-Patterns (ERRORS)
+#### ❌ INCORRECT: Duplicating Responses history by default
 
-#### ❌ INCORRECT: Using AgentsClient for hosted agents
+If you omit `default_options={"store": False}` in Agent Framework Responses agents, you risk duplicating conversation history because the hosted Responses platform already manages it.
+
+---
+
+## 4. BYO Protocol Host Patterns
+
+### 4.1 Correct Responses Host
+
+#### ✅ CORRECT: `ResponsesAgentServerHost` handler
 
 ```python
-# WRONG - Hosted agents require AIProjectClient
-from azure.ai.agents import AgentsClient
+import asyncio
 
-client = AgentsClient(
-    endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-    credential=DefaultAzureCredential()
+from azure.ai.agentserver.responses import (
+    CreateResponse,
+    ResponseContext,
+    ResponsesAgentServerHost,
+    TextResponse,
 )
+
+app = ResponsesAgentServerHost()
+
+@app.response_handler
+async def handle_response(
+    request: CreateResponse,
+    context: ResponseContext,
+    cancellation_signal: asyncio.Event,
+):
+    user_text = await context.get_input_text()
+    return TextResponse(context, request, text=f"Echo: {user_text}")
+
+app.run()
 ```
 
-#### ❌ INCORRECT: Hardcoded credentials
+### 4.2 Correct Invocations Host
+
+#### ✅ CORRECT: `InvocationAgentServerHost` handler
 
 ```python
-# WRONG - Never hardcode credentials
-client = AIProjectClient(
-    endpoint="https://myresource.services.ai.azure.com/api/projects/myproject",
-    credential=DefaultAzureCredential()
-)
+from azure.ai.agentserver.invocations import InvocationAgentServerHost
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+
+app = InvocationAgentServerHost()
+
+@app.invoke_handler
+async def handle_invocation(request: Request) -> Response:
+    payload = await request.json()
+    return JSONResponse({"response": payload.get("message", "")})
+
+app.run()
 ```
 
-#### ❌ INCORRECT: Missing credential
+### 4.3 Correct Multi-Protocol Host
+
+#### ✅ CORRECT: Cooperative inheritance
 
 ```python
-# WRONG - credential is required
-client = AIProjectClient(
-    endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"]
-)
+from azure.ai.agentserver.invocations import InvocationAgentServerHost
+from azure.ai.agentserver.responses import ResponsesAgentServerHost
+
+class HostedAgentHost(InvocationAgentServerHost, ResponsesAgentServerHost):
+    pass
+```
+
+### 4.4 Anti-Patterns
+
+#### ❌ INCORRECT: Hand-rolled health endpoint instead of protocol libraries
+
+```python
+@app.get("/readiness")
+def readiness():
+    return {"ok": True}
+```
+
+#### ❌ INCORRECT: Invocations handler returning raw dict
+
+```python
+@app.invoke_handler
+async def handle_invocation(request: Request):
+    return {"response": "ok"}
 ```
 
 ---
 
-## 3. Hosted Agent Creation Patterns
+## 5. Deployment Configuration
 
-### 3.1 Correct Agent Creation
+### 5.1 Correct Manifest
 
-#### ✅ CORRECT: Basic hosted agent with ImageBasedHostedAgentDefinition
+#### ✅ CORRECT: `agent.manifest.yaml`
 
-```python
-from azure.ai.projects.models import (
-    ImageBasedHostedAgentDefinition,
-    ProtocolVersionRecord,
-    AgentProtocol,
-)
-
-agent = client.agents.create_version(
-    agent_name="my-hosted-agent",
-    definition=ImageBasedHostedAgentDefinition(
-        container_protocol_versions=[
-            ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-        ],
-        image="myregistry.azurecr.io/my-agent:latest"
-    )
-)
+```yaml
+name: basic-responses-agent
+template:
+  name: basic-responses-agent
+  kind: hosted
+  protocols:
+    - protocol: responses
+      version: 1.0.0
+  environment_variables:
+    - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+      value: "{{AZURE_AI_MODEL_DEPLOYMENT_NAME}}"
+resources:
+  - kind: model
+    id: gpt-4.1-mini
+    name: AZURE_AI_MODEL_DEPLOYMENT_NAME
 ```
 
-#### ✅ CORRECT: Agent with resource allocation
+#### ✅ CORRECT: `agent.yaml`
 
-```python
-agent = client.agents.create_version(
-    agent_name="my-hosted-agent",
-    definition=ImageBasedHostedAgentDefinition(
-        container_protocol_versions=[
-            ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-        ],
-        image="myregistry.azurecr.io/my-agent:latest",
-        cpu="2",
-        memory="4Gi"
-    )
-)
+```yaml
+kind: hosted
+name: basic-responses-agent
+protocols:
+  - protocol: responses
+    version: 1.0.0
+resources:
+  cpu: "0.25"
+  memory: "0.5Gi"
 ```
 
-#### ✅ CORRECT: Agent with tools and environment variables
+### 5.2 Anti-Patterns
+
+#### ❌ INCORRECT: Redeclaring platform-injected variables
+
+```yaml
+environment_variables:
+  - name: FOUNDRY_PROJECT_ENDPOINT
+    value: "https://example.services.ai.azure.com/api/projects/project"
+  - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+    value: "InstrumentationKey=..."
+```
+
+#### ❌ INCORRECT: Old `v1` protocol version
+
+Do not use `version: "v1"` in `agent.yaml` or `agent.manifest.yaml`; use `version: 1.0.0`.
+
+#### ❌ INCORRECT: Defining tools in agent deployment config
+
+```yaml
+tools:
+  - type: code_interpreter
+```
+
+---
+
+## 6. Azure Developer CLI Workflow
+
+### 6.1 Correct Commands
+
+#### ✅ CORRECT: Scaffold, run, deploy, inspect, monitor
+
+```bash
+azd ext install azure.ai.agents
+azd ai agent init
+azd ai agent run
+azd ai agent invoke --local "Hello"
+azd up
+azd ai agent show --output table
+azd ai agent monitor --tail 20
+azd down
+```
+
+### 6.2 Anti-Patterns
+
+#### ❌ INCORRECT: Removed `az cognitiveservices agent` commands
+
+```bash
+az cognitiveservices agent start --name my-agent --agent-version 1
+az cognitiveservices agent stop --name my-agent --agent-version 1
+az cognitiveservices agent list-versions --name my-agent
+```
+
+#### ❌ INCORRECT: Manual capability host setup
+
+```bash
+az rest --method PUT --url "$ACCOUNT_URL/capabilityHosts/accountcaphost"
+```
+
+---
+
+## 7. Direct Python SDK Deployment
+
+### 7.1 Correct SDK Version Creation
+
+#### ✅ CORRECT: `HostedAgentDefinition`, `allow_preview=True`, protocol `1.0.0`
 
 ```python
-agent = client.agents.create_version(
+import os
+
+from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import AgentProtocol, HostedAgentDefinition, ProtocolVersionRecord
+from azure.identity import DefaultAzureCredential
+
+project = AIProjectClient(
+    endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
+    credential=DefaultAzureCredential(),
+    allow_preview=True,
+)
+
+agent = project.agents.create_version(
     agent_name="my-hosted-agent",
-    definition=ImageBasedHostedAgentDefinition(
+    definition=HostedAgentDefinition(
         container_protocol_versions=[
-            ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
+            ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="1.0.0"),
+            ProtocolVersionRecord(protocol=AgentProtocol.INVOCATIONS, version="1.0.0"),
         ],
-        image="myregistry.azurecr.io/my-agent:latest",
+        image="myregistry.azurecr.io/my-agent:v1",
         cpu="1",
         memory="2Gi",
-        tools=[{"type": "code_interpreter"}],
         environment_variables={
-            "AZURE_AI_PROJECT_ENDPOINT": os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-            "MODEL_NAME": "gpt-4o-mini"
-        }
-    )
+            "AZURE_AI_MODEL_DEPLOYMENT_NAME": os.environ["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
+        },
+    ),
 )
 ```
 
-### 3.2 Anti-Patterns (ERRORS)
-
-#### ❌ INCORRECT: Using create_agent instead of create_version
+#### ✅ CORRECT: Dedicated endpoint SDK invocation
 
 ```python
-# WRONG - Hosted agents use create_version, not create_agent
-agent = client.agents.create_agent(
-    name="wrong-agent-example",
-    definition=ImageBasedHostedAgentDefinition(...)
-)
+openai_client = project.get_openai_client(agent_name="my-hosted-agent")
+response = openai_client.responses.create(input="Hello!")
+print(response.output_text)
 ```
 
-#### ❌ INCORRECT: Missing container_protocol_versions
+### 7.2 Anti-Patterns
+
+#### ❌ INCORRECT: Initial-preview hosted agent definition
 
 ```python
-# WRONG - container_protocol_versions is required
-agent = client.agents.create_version(
-    agent_name="missing-protocol-agent",
-    definition=ImageBasedHostedAgentDefinition(
-        image="wrong.azurecr.io/incomplete-agent:latest"
-    )
-)
-```
+from azure.ai.projects.models import ImageBasedHostedAgentDefinition
 
-#### ❌ INCORRECT: Missing image parameter
-
-```python
-# WRONG - image is required for ImageBasedHostedAgentDefinition
-agent = client.agents.create_version(
-    agent_name="missing-image-agent",
+agent = project.agents.create_version(
+    agent_name="my-hosted-agent",
     definition=ImageBasedHostedAgentDefinition(
         container_protocol_versions=[
             ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-        ]
-    )
-)
-```
-
-#### ❌ INCORRECT: Using wrong protocol enum
-
-```python
-# WRONG - Must use AgentProtocol enum, not string
-agent = client.agents.create_version(
-    agent_name="wrong-protocol-agent",
-    definition=ImageBasedHostedAgentDefinition(
-        container_protocol_versions=[
-            ProtocolVersionRecord(protocol="responses", version="v1")
         ],
-        image="wrong.azurecr.io/string-protocol-agent:latest"
-    )
+        tools=[{"type": "code_interpreter"}],
+    ),
 )
 ```
 
-#### ❌ INCORRECT: Passing model parameter (not applicable to hosted agents)
+#### ❌ INCORRECT: Shared endpoint `agent_reference` routing
 
 ```python
-# WRONG - Hosted agents don't take model parameter in definition
-agent = client.agents.create_version(
-    agent_name="wrong-model-agent",
-    definition=ImageBasedHostedAgentDefinition(
-        container_protocol_versions=[...],
-        image="wrong.azurecr.io/model-param-agent:latest",
-        model="gpt-4o-mini"  # WRONG - use environment_variables instead
-    )
+openai_client = project.get_openai_client()
+openai_client.responses.create(
+    input="Hello!",
+    extra_body={"agent_reference": {"name": "my-hosted-agent", "type": "agent_reference"}},
 )
 ```
+
+#### ❌ INCORRECT: Missing preview flag for agent-bound OpenAI client
+
+If you use `project.get_openai_client(agent_name="...")`, construct `AIProjectClient` with `allow_preview=True` during preview.
 
 ---
 
-## 4. Protocol Version Patterns
+## 8. REST Invocation
 
-### 4.1 Correct Protocol Configuration
+### 8.1 Correct REST Endpoints
 
-#### ✅ CORRECT: RESPONSES protocol with v1
+#### ✅ CORRECT: Responses endpoint with preview header
 
-```python
-container_protocol_versions=[
-    ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-]
+```bash
+curl -X POST "$BASE_URL/agents/my-hosted-agent/endpoint/protocols/openai/responses?api-version=v1" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Foundry-Features: HostedAgents=V1Preview" \
+  -d '{"input": "Hello!", "stream": false}'
 ```
 
-### 4.2 Anti-Patterns (ERRORS)
+#### ✅ CORRECT: Invocations endpoint with preview header
 
-#### ❌ INCORRECT: Using string instead of enum
-
-```python
-# WRONG - protocol must be AgentProtocol enum
-container_protocol_versions=[
-    ProtocolVersionRecord(protocol="RESPONSES", version="v1")
-]
+```bash
+curl -X POST "$BASE_URL/agents/my-hosted-agent/endpoint/protocols/invocations?api-version=v1" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Foundry-Features: HostedAgents=V1Preview" \
+  -d '{"message": "Process this task"}'
 ```
 
-#### ❌ INCORRECT: Empty protocol versions list
+### 8.2 Anti-Patterns
 
-```python
-# WRONG - At least one protocol version required
-container_protocol_versions=[]
+#### ❌ INCORRECT: Shared project responses endpoint
+
+```bash
+curl -X POST "$BASE_URL/openai/responses?api-version=v1" \
+  -d '{"input": "Hello!", "agent_reference": {"name": "my-agent"}}'
 ```
 
-#### ❌ INCORRECT: Missing version parameter
+#### ❌ INCORRECT: Missing preview header during preview
 
-```python
-# WRONG - version is required
-container_protocol_versions=[
-    ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES)
-]
-```
+During preview, REST calls to hosted-agent endpoints must include `Foundry-Features: HostedAgents=V1Preview`.
 
 ---
 
-## 5. Resource Allocation Patterns
+## 9. Identity, RBAC, and Container Requirements
 
-### 5.1 Correct Resource Specification
+### 9.1 Correct Requirements
 
-#### ✅ CORRECT: String format for CPU and memory
+#### ✅ CORRECT: Build linux/amd64 image
 
-```python
-ImageBasedHostedAgentDefinition(
-    container_protocol_versions=[...],
-    image="...",
-    cpu="1",      # String format
-    memory="2Gi"  # String format with unit
-)
+```bash
+docker build --platform linux/amd64 -t my-agent:v1 .
 ```
 
-#### ✅ CORRECT: Higher resource allocation
+#### ✅ CORRECT: Assign downstream permissions to agent identity
 
-```python
-ImageBasedHostedAgentDefinition(
-    container_protocol_versions=[...],
-    image="...",
-    cpu="4",
-    memory="8Gi"
-)
+```text
+Grant downstream Azure resource access to the dedicated agent Entra identity created at deploy time.
 ```
 
-### 5.2 Anti-Patterns (ERRORS)
+#### ✅ CORRECT: Project managed identity used for image pulls
 
-#### ❌ INCORRECT: Numeric values instead of strings
-
-```python
-# WRONG - cpu and memory must be strings
-ImageBasedHostedAgentDefinition(
-    container_protocol_versions=[...],
-    image="...",
-    cpu=1,        # WRONG - must be string "1"
-    memory=2048   # WRONG - must be string "2Gi"
-)
+```text
+Grant Container Registry Repository Reader or AcrPull to the Foundry project managed identity for ACR image pulls.
 ```
 
-#### ❌ INCORRECT: Missing unit for memory
+### 9.2 Anti-Patterns
 
-```python
-# WRONG - memory needs unit suffix (Gi, Mi)
-ImageBasedHostedAgentDefinition(
-    container_protocol_versions=[...],
-    image="...",
-    memory="2"  # WRONG - should be "2Gi"
-)
+#### ❌ INCORRECT: Treating project managed identity as runtime identity
+
+```text
+Grant all runtime model and storage access only to the project managed identity.
 ```
 
----
+#### ❌ INCORRECT: ARM-only image build
 
-## 6. Tools Configuration Patterns
-
-### 6.1 Correct Tools Specification
-
-#### ✅ CORRECT: Code interpreter tool
-
-```python
-tools=[{"type": "code_interpreter"}]
-```
-
-#### ✅ CORRECT: Multiple tools
-
-```python
-tools=[
-    {"type": "code_interpreter"},
-    {"type": "file_search"}
-]
-```
-
-#### ✅ CORRECT: MCP tool with server configuration
-
-```python
-tools=[
-    {
-        "type": "mcp",
-        "server_label": "my-mcp-server",
-        "server_url": "https://my-mcp-server.example.com"
-    }
-]
-```
-
-### 6.2 Anti-Patterns (ERRORS)
-
-#### ❌ INCORRECT: Using CodeInterpreterTool class
-
-```python
-# WRONG - tools should be dict format for hosted agents
-from azure.ai.agents.models import CodeInterpreterTool
-
-tools=[CodeInterpreterTool()]  # WRONG for hosted agents
-```
-
-#### ❌ INCORRECT: String instead of dict
-
-```python
-# WRONG - tools must be list of dicts
-tools=["code_interpreter"]  # WRONG
-```
-
----
-
-## 7. Environment Variables Patterns
-
-### 7.1 Correct Environment Variables
-
-#### ✅ CORRECT: Using os.environ
-
-```python
-environment_variables={
-    "AZURE_AI_PROJECT_ENDPOINT": os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-    "MODEL_NAME": "gpt-4o-mini"
-}
-```
-
-### 7.2 Anti-Patterns (ERRORS)
-
-#### ❌ INCORRECT: Hardcoded secrets
-
-```python
-# WRONG - Never hardcode secrets
-environment_variables={
-    "API_KEY": "sk-1234567890abcdef"  # NEVER DO THIS
-}
-```
-
----
-
-## 8. Agent Lifecycle Patterns
-
-### 8.1 Correct Lifecycle Management
-
-#### ✅ CORRECT: List agent versions
-
-```python
-versions = client.agents.list_versions(agent_name="my-hosted-agent")
-for version in versions:
-    print(f"Version: {version.version}, State: {version.state}")
-```
-
-#### ✅ CORRECT: Delete agent version
-
-```python
-client.agents.delete_version(
-    agent_name="my-hosted-agent",
-    version=agent.version
-)
-```
-
-### 8.2 Anti-Patterns (ERRORS)
-
-#### ❌ INCORRECT: Using delete_agent instead of delete_version
-
-```python
-# WRONG - Use delete_version for hosted agent versions
-client.agents.delete_agent(agent_id="wrong-delete-agent")
+```bash
+docker build -t my-agent:v1 .
 ```
 
 ---
 
 ## Summary Checklist
 
-Before submitting code using hosted agents, verify:
+Before submitting hosted-agent guidance or code, verify:
 
-- [ ] Imports use `azure.ai.projects` (NOT `azure.ai.agents`) for hosted agent models
-- [ ] Client is `AIProjectClient` (NOT `AgentsClient`)
-- [ ] Uses `create_version` method (NOT `create_agent`)
-- [ ] `ImageBasedHostedAgentDefinition` has required `container_protocol_versions`
-- [ ] `ImageBasedHostedAgentDefinition` has required `image` parameter
-- [ ] `ProtocolVersionRecord` uses `AgentProtocol` enum (NOT string)
-- [ ] `cpu` and `memory` are strings with proper units
-- [ ] `tools` is a list of dicts (NOT model classes)
-- [ ] No hardcoded credentials or secrets
-- [ ] Uses `DefaultAzureCredential` for authentication
+- [ ] Protocol choice is explicit: Responses for OpenAI-compatible chat; Invocations for arbitrary JSON/custom protocols.
+- [ ] Protocol libraries are `azure-ai-agentserver-responses` and/or `azure-ai-agentserver-invocations` for Python, or `Azure.AI.AgentServer.Responses`/`Azure.AI.AgentServer.Invocations` for .NET.
+- [ ] Agent Framework Python uses `FoundryChatClient`, `Agent`, and `ResponsesHostServer`.
+- [ ] BYO code uses `ResponsesAgentServerHost` or `InvocationAgentServerHost`.
+- [ ] `agent.yaml` uses `version: 1.0.0`.
+- [ ] Platform-injected `FOUNDRY_*` and Application Insights variables are not redeclared.
+- [ ] Direct SDK deployment uses `HostedAgentDefinition`, `azure-ai-projects>=2.1.0`, `allow_preview=True`, and waits for `active`.
+- [ ] Invocation uses the dedicated agent endpoint or `project.get_openai_client(agent_name=...)`.
+- [ ] Removed APIs and old packages are not recommended.
+- [ ] Identity/RBAC guidance distinguishes agent Entra identity from project managed identity.

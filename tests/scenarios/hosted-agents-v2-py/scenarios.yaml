@@ -1,445 +1,356 @@
 # Test scenarios for hosted-agents-v2-py skill evaluation
-# Each scenario tests a specific usage pattern against acceptance criteria
+# Each scenario tests one refreshed hosted-agent pattern.
 
 config:
   model: gpt-4
-  max_tokens: 2000
+  max_tokens: 2500
   temperature: 0.3
 
 scenarios:
-  # Basic Client and Agent Creation
-  - name: basic_hosted_agent_creation
+  - name: protocol_selection
     prompt: |
-      Create a hosted agent using ImageBasedHostedAgentDefinition with AIProjectClient.
-      Use DefaultAzureCredential for authentication and environment variables for configuration.
-      The agent should use a container image from Azure Container Registry.
+      Explain which hosted-agent protocol to choose for common scenarios.
+      Include Responses, Invocations, Activity, and A2A guidance.
     expected_patterns:
-      - "from azure.ai.projects import AIProjectClient"
-      - "from azure.identity import DefaultAzureCredential"
-      - "from azure.ai.projects.models import"
+      - "Responses"
+      - "Invocations"
+      - "Default to Responses"
+      - "Activity"
+      - "A2A"
+    forbidden_patterns:
       - "ImageBasedHostedAgentDefinition"
-      - "ProtocolVersionRecord"
-      - "AgentProtocol"
-      - "create_version"
-      - "agent_name="
-      - "container_protocol_versions"
-      - "image="
-    forbidden_patterns:
-      - "from azure.ai.agents.models import ImageBasedHostedAgentDefinition"
-      - "from azure.ai.agents import AgentsClient"
-      - "create_agent("
-    tags:
-      - basic
-      - client
-      - hosted-agent
-    mock_response: |
-      import os
-      from azure.identity import DefaultAzureCredential
-      from azure.ai.projects import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      client = AIProjectClient(
-          endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
-      )
-      
-      agent = client.agents.create_version(
-          agent_name="my-hosted-agent",
-          definition=ImageBasedHostedAgentDefinition(
-              container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-              ],
-              image="myregistry.azurecr.io/my-agent:latest"
-          )
-      )
-      
-      print(f"Created agent: {agent.name} (version: {agent.version})")
-
-  # Protocol Version Configuration
-  - name: protocol_version_configuration
-    prompt: |
-      Create a hosted agent with properly configured container_protocol_versions.
-      Use ProtocolVersionRecord with AgentProtocol.RESPONSES and version "v1".
-    expected_patterns:
-      - "ProtocolVersionRecord"
-      - "AgentProtocol.RESPONSES"
       - 'version="v1"'
-      - "container_protocol_versions="
-    forbidden_patterns:
-      - 'protocol="RESPONSES"'
-      - 'protocol="responses"'
-      - "container_protocol_versions=[]"
+      - "capability host"
     tags:
       - protocol
-      - configuration
+      - decision
     mock_response: |
-      import os
-      from azure.identity import DefaultAzureCredential
-      from azure.ai.projects import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      client = AIProjectClient(
-          endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
-      )
-      
-      agent = client.agents.create_version(
-          agent_name="protocol-agent",
-          definition=ImageBasedHostedAgentDefinition(
-              container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-              ],
-              image="myregistry.azurecr.io/agent:v1"
-          )
-      )
+      Default to Responses for conversational assistants, multi-turn chat, RAG,
+      tools, streaming, and background work that fits the OpenAI-compatible
+      Responses contract. Use Invocations for webhooks, arbitrary JSON,
+      non-conversational processing, custom SSE, protocol bridges, and callers
+      that cannot use the Responses payload shape. Activity is used for Teams
+      and M365 channel integration, typically alongside Responses. A2A is used
+      for agent-to-agent delegation. A single hosted agent can expose multiple
+      protocols when each protocol is declared with version 1.0.0.
 
-  # Resource Allocation
-  - name: resource_allocation
+  - name: python_agent_framework_responses
     prompt: |
-      Create a hosted agent with custom CPU and memory allocation.
-      Use 2 CPU cores and 4Gi of memory. CPU and memory should be string values.
+      Create a Python Microsoft Agent Framework hosted agent using the refreshed
+      Responses protocol. Use FoundryChatClient and ResponsesHostServer.
     expected_patterns:
-      - 'cpu="2"'
-      - 'memory="4Gi"'
-      - "ImageBasedHostedAgentDefinition"
+      - "from agent_framework import Agent"
+      - "from agent_framework.foundry import FoundryChatClient"
+      - "from agent_framework_foundry_hosting import ResponsesHostServer"
+      - "FOUNDRY_PROJECT_ENDPOINT"
+      - "AZURE_AI_MODEL_DEPLOYMENT_NAME"
+      - 'default_options={"store": False}'
+      - "ResponsesHostServer(agent).run()"
     forbidden_patterns:
-      - "cpu=2"
-      - "memory=4"
-      - 'memory="4"'
+      - "AzureAIAgentClient"
+      - "ChatAgent"
+      - "from_agent_framework"
+      - "azure.ai.agentserver.agentframework"
     tags:
-      - resources
-      - configuration
+      - python
+      - agent-framework
+      - responses
     mock_response: |
       import os
+
+      from agent_framework import Agent
+      from agent_framework.foundry import FoundryChatClient
+      from agent_framework_foundry_hosting import ResponsesHostServer
       from azure.identity import DefaultAzureCredential
-      from azure.ai.projects import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      client = AIProjectClient(
-          endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
-      )
-      
-      agent = client.agents.create_version(
-          agent_name="resource-agent",
-          definition=ImageBasedHostedAgentDefinition(
-              container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-              ],
-              image="myregistry.azurecr.io/agent:latest",
-              cpu="2",
-              memory="4Gi"
-          )
+
+      client = FoundryChatClient(
+          project_endpoint=os.environ["FOUNDRY_PROJECT_ENDPOINT"],
+          model=os.environ["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
+          credential=DefaultAzureCredential(),
       )
 
-  # Tools Configuration
-  - name: tools_configuration
+      agent = Agent(
+          client=client,
+          instructions="You are a helpful assistant.",
+          default_options={"store": False},
+      )
+
+      ResponsesHostServer(agent).run()
+
+  - name: byo_responses_protocol_host
     prompt: |
-      Create a hosted agent with code_interpreter tool enabled.
-      Tools should be specified as a list of dictionaries with "type" key.
+      Show a Python bring-your-own hosted agent that exposes the Responses
+      protocol directly with the protocol library.
     expected_patterns:
-      - "tools="
-      - '{"type": "code_interpreter"}'
-      - "ImageBasedHostedAgentDefinition"
+      - "ResponsesAgentServerHost"
+      - "@app.response_handler"
+      - "CreateResponse"
+      - "ResponseContext"
+      - "TextResponse"
+      - "context.get_input_text"
+      - "app.run()"
     forbidden_patterns:
-      - "CodeInterpreterTool()"
-      - "from azure.ai.agents.models import CodeInterpreterTool"
-      - 'tools=["code_interpreter"]'
+      - "from_langgraph"
+      - "from_agent_framework"
+      - "azure.ai.agentserver.langgraph"
     tags:
-      - tools
-      - code-interpreter
+      - python
+      - byo
+      - responses
     mock_response: |
-      import os
-      from azure.identity import DefaultAzureCredential
-      from azure.ai.projects import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      client = AIProjectClient(
-          endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
-      )
-      
-      agent = client.agents.create_version(
-          agent_name="tools-agent",
-          definition=ImageBasedHostedAgentDefinition(
-              container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-              ],
-              image="myregistry.azurecr.io/agent:latest",
-              tools=[{"type": "code_interpreter"}]
-          )
+      import asyncio
+
+      from azure.ai.agentserver.responses import (
+          CreateResponse,
+          ResponseContext,
+          ResponsesAgentServerHost,
+          TextResponse,
       )
 
-  # Environment Variables
-  - name: environment_variables
+      app = ResponsesAgentServerHost()
+
+      @app.response_handler
+      async def handle_response(
+          request: CreateResponse,
+          context: ResponseContext,
+          cancellation_signal: asyncio.Event,
+      ):
+          user_text = await context.get_input_text()
+          return TextResponse(context, request, text=f"Echo: {user_text}")
+
+      app.run()
+
+  - name: byo_invocations_protocol_host
     prompt: |
-      Create a hosted agent with environment variables for configuration.
-      Include AZURE_AI_PROJECT_ENDPOINT and MODEL_NAME. Use os.environ for sensitive values.
+      Show a Python bring-your-own hosted agent that accepts arbitrary JSON on
+      the Invocations protocol and returns a Starlette response.
     expected_patterns:
-      - "environment_variables="
-      - "AZURE_AI_PROJECT_ENDPOINT"
-      - "MODEL_NAME"
-      - "os.environ"
+      - "InvocationAgentServerHost"
+      - "@app.invoke_handler"
+      - "Request"
+      - "JSONResponse"
+      - "await request.json()"
+      - "app.run()"
     forbidden_patterns:
-      - 'API_KEY": "sk-'
-      - '"https://myresource'
+      - "return {\"response\""
+      - "ResponsesAgentServerHost"
+      - "agent_reference"
     tags:
-      - environment
-      - configuration
+      - python
+      - byo
+      - invocations
     mock_response: |
-      import os
-      from azure.identity import DefaultAzureCredential
-      from azure.ai.projects import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      client = AIProjectClient(
-          endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
-      )
-      
-      agent = client.agents.create_version(
-          agent_name="env-agent",
-          definition=ImageBasedHostedAgentDefinition(
-              container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-              ],
-              image="myregistry.azurecr.io/agent:latest",
-              environment_variables={
-                  "AZURE_AI_PROJECT_ENDPOINT": os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-                  "MODEL_NAME": "gpt-4o-mini"
-              }
-          )
-      )
+      from azure.ai.agentserver.invocations import InvocationAgentServerHost
+      from starlette.requests import Request
+      from starlette.responses import JSONResponse, Response
 
-  # Complete Example with All Options
-  - name: complete_hosted_agent
+      app = InvocationAgentServerHost()
+
+      @app.invoke_handler
+      async def handle_invocation(request: Request) -> Response:
+          payload = await request.json()
+          message = payload.get("message", "")
+          return JSONResponse({"response": f"Echo: {message}"})
+
+      app.run()
+
+  - name: deployment_yaml
     prompt: |
-      Create a complete hosted agent with all configuration options:
-      - Custom CPU and memory
-      - Code interpreter and file_search tools
-      - Environment variables
-      - Proper protocol version configuration
+      Create hosted-agent deployment YAML for azd using the refreshed protocol
+      version. Include one manifest and one agent.yaml example.
     expected_patterns:
-      - "ImageBasedHostedAgentDefinition"
+      - "kind: hosted"
+      - "protocol: responses"
+      - "version: 1.0.0"
+      - "AZURE_AI_MODEL_DEPLOYMENT_NAME"
+      - "cpu:"
+      - "memory:"
+    forbidden_patterns:
+      - "version: v1"
+      - "FOUNDRY_PROJECT_ENDPOINT"
+      - "APPLICATIONINSIGHTS_CONNECTION_STRING"
+      - "tools:"
+    tags:
+      - yaml
+      - deployment
+      - azd
+    mock_response: |
+      agent.manifest.yaml:
+
+      name: basic-responses-agent
+      template:
+        name: basic-responses-agent
+        kind: hosted
+        protocols:
+          - protocol: responses
+            version: 1.0.0
+        environment_variables:
+          - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+            value: "{{AZURE_AI_MODEL_DEPLOYMENT_NAME}}"
+      resources:
+        - kind: model
+          id: gpt-4.1-mini
+          name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+
+      agent.yaml:
+
+      kind: hosted
+      name: basic-responses-agent
+      protocols:
+        - protocol: responses
+          version: 1.0.0
+      resources:
+        cpu: "0.25"
+        memory: "0.5Gi"
+
+  - name: python_sdk_deployment
+    prompt: |
+      Deploy a hosted agent version with the Python Azure AI Projects SDK on the
+      refreshed preview. Expose both Responses and Invocations and show how to
+      invoke with a dedicated agent-bound OpenAI client.
+    expected_patterns:
+      - "from azure.ai.projects import AIProjectClient"
+      - "HostedAgentDefinition"
       - "ProtocolVersionRecord"
       - "AgentProtocol.RESPONSES"
-      - "cpu="
-      - "memory="
-      - "tools="
-      - "environment_variables="
-      - "create_version"
+      - "AgentProtocol.INVOCATIONS"
+      - 'version="1.0.0"'
+      - "allow_preview=True"
+      - "get_openai_client(agent_name="
     forbidden_patterns:
-      - "create_agent("
-      - "from azure.ai.agents"
+      - "ImageBasedHostedAgentDefinition"
+      - 'version="v1"'
+      - "tools="
+      - "agent_reference"
+      - "capabilityHosts"
     tags:
-      - complete
-      - advanced
+      - python
+      - sdk
+      - deployment
     mock_response: |
       import os
-      from azure.identity import DefaultAzureCredential
+
       from azure.ai.projects import AIProjectClient
       from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
           AgentProtocol,
+          HostedAgentDefinition,
+          ProtocolVersionRecord,
       )
-      
-      client = AIProjectClient(
+      from azure.identity import DefaultAzureCredential
+
+      project = AIProjectClient(
           endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
+          credential=DefaultAzureCredential(),
+          allow_preview=True,
       )
-      
-      agent = client.agents.create_version(
-          agent_name="complete-agent",
-          definition=ImageBasedHostedAgentDefinition(
+
+      agent = project.agents.create_version(
+          agent_name="my-hosted-agent",
+          definition=HostedAgentDefinition(
               container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
+                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="1.0.0"),
+                  ProtocolVersionRecord(protocol=AgentProtocol.INVOCATIONS, version="1.0.0"),
               ],
-              image="myregistry.azurecr.io/complete-agent:v1.0",
-              cpu="2",
-              memory="4Gi",
-              tools=[
-                  {"type": "code_interpreter"},
-                  {"type": "file_search"}
-              ],
+              image="myregistry.azurecr.io/my-agent:v1",
+              cpu="1",
+              memory="2Gi",
               environment_variables={
-                  "AZURE_AI_PROJECT_ENDPOINT": os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-                  "MODEL_NAME": "gpt-4o-mini",
-                  "LOG_LEVEL": "INFO"
-              }
-          )
-      )
-      
-      print(f"Created agent: {agent.name} (version: {agent.version})")
-
-  # Async Pattern
-  - name: async_hosted_agent
-    prompt: |
-      Create a hosted agent using async/await pattern with proper context managers.
-      Use azure.ai.projects.aio for the async client and azure.identity.aio for credentials.
-    expected_patterns:
-      - "from azure.ai.projects.aio import AIProjectClient"
-      - "from azure.identity.aio import DefaultAzureCredential"
-      - "async with"
-      - "await client.agents.create_version"
-      - "async def"
-    forbidden_patterns:
-      - "from azure.ai.projects import AIProjectClient"
-      - "from azure.identity import DefaultAzureCredential"
-    tags:
-      - async
-      - advanced
-    mock_response: |
-      import os
-      from azure.identity.aio import DefaultAzureCredential
-      from azure.ai.projects.aio import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      async def create_hosted_agent_async():
-          """Create a hosted agent asynchronously."""
-          
-          async with DefaultAzureCredential() as credential:
-              async with AIProjectClient(
-                  endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-                  credential=credential
-              ) as client:
-                  agent = await client.agents.create_version(
-                      agent_name="async-agent",
-                      definition=ImageBasedHostedAgentDefinition(
-                          container_protocol_versions=[
-                              ProtocolVersionRecord(
-                                  protocol=AgentProtocol.RESPONSES,
-                                  version="v1"
-                              )
-                          ],
-                          image="myregistry.azurecr.io/async-agent:latest",
-                          cpu="1",
-                          memory="2Gi"
-                      )
-                  )
-                  return agent
-
-  # Agent Lifecycle Management
-  - name: agent_lifecycle
-    prompt: |
-      Show how to manage hosted agent lifecycle: list versions and delete a version.
-      Use list_versions and delete_version methods.
-    expected_patterns:
-      - "list_versions"
-      - "agent_name="
-      - "delete_version"
-      - "version="
-    forbidden_patterns:
-      - "delete_agent("
-    tags:
-      - lifecycle
-      - management
-    mock_response: |
-      import os
-      from azure.identity import DefaultAzureCredential
-      from azure.ai.projects import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      client = AIProjectClient(
-          endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
-      )
-      
-      # Create agent
-      agent = client.agents.create_version(
-          agent_name="lifecycle-agent",
-          definition=ImageBasedHostedAgentDefinition(
-              container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-              ],
-              image="myregistry.azurecr.io/agent:latest"
-          )
-      )
-      
-      # List all versions
-      versions = client.agents.list_versions(agent_name="lifecycle-agent")
-      for version in versions:
-          print(f"Version: {version.version}, State: {version.state}")
-      
-      # Delete specific version
-      client.agents.delete_version(
-          agent_name="lifecycle-agent",
-          version=agent.version
+                  "AZURE_AI_MODEL_DEPLOYMENT_NAME": os.environ["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
+              },
+          ),
       )
 
-  # MCP Tool Configuration
-  - name: mcp_tool_configuration
+      openai_client = project.get_openai_client(agent_name="my-hosted-agent")
+      response = openai_client.responses.create(input="Hello!")
+      print(response.output_text)
+
+  - name: azd_workflow
     prompt: |
-      Create a hosted agent with MCP tool configured for external service integration.
-      Include server_label and server_url in the MCP tool configuration.
+      Provide the azd workflow for creating, running, deploying, inspecting,
+      invoking, monitoring, and cleaning up a hosted agent.
     expected_patterns:
-      - '"type": "mcp"'
-      - "server_label"
-      - "server_url"
-      - "tools="
+      - "azd ext install azure.ai.agents"
+      - "azd ai agent init"
+      - "azd ai agent run"
+      - "azd ai agent invoke --local"
+      - "azd up"
+      - "azd ai agent show"
+      - "azd ai agent monitor"
+      - "azd down"
     forbidden_patterns:
-      - "project_connection_id"
+      - "az cognitiveservices agent"
+      - "capabilityHosts"
+      - "delete-deployment"
     tags:
-      - tools
-      - mcp
-      - advanced
+      - cli
+      - deployment
+      - azd
     mock_response: |
-      import os
-      from azure.identity import DefaultAzureCredential
-      from azure.ai.projects import AIProjectClient
-      from azure.ai.projects.models import (
-          ImageBasedHostedAgentDefinition,
-          ProtocolVersionRecord,
-          AgentProtocol,
-      )
-      
-      client = AIProjectClient(
-          endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-          credential=DefaultAzureCredential()
-      )
-      
-      agent = client.agents.create_version(
-          agent_name="mcp-agent",
-          definition=ImageBasedHostedAgentDefinition(
-              container_protocol_versions=[
-                  ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
-              ],
-              image="myregistry.azurecr.io/mcp-agent:latest",
-              tools=[
-                  {"type": "code_interpreter"},
-                  {
-                      "type": "mcp",
-                      "server_label": "my-mcp-server",
-                      "server_url": "https://my-mcp-server.example.com"
-                  }
-              ]
-          )
-      )
+      azd ext install azure.ai.agents
+      azd ai agent init
+      azd ai agent run
+      azd ai agent invoke --local "Hello"
+      azd up
+      azd ai agent show --output table
+      azd ai agent invoke "Hello"
+      azd ai agent monitor --tail 20
+      azd down
+
+  - name: dotnet_protocol_packages
+    prompt: |
+      Summarize the C#/.NET package choices for hosted agents on the refreshed
+      preview and mention the Agent Framework hosting extension names.
+    expected_patterns:
+      - "Azure.AI.AgentServer.Responses"
+      - "Azure.AI.AgentServer.Invocations"
+      - "Azure.AI.AgentServer.Core"
+      - "Azure.Identity"
+      - "AddFoundryResponses"
+      - "MapFoundryResponses"
+    forbidden_patterns:
+      - "Azure.AI.AgentServer.AgentFramework"
+      - 'version="v1"'
+    tags:
+      - dotnet
+      - csharp
+      - protocol
+    mock_response: |
+      For C# hosted agents, use Azure.AI.AgentServer.Responses for the
+      Responses protocol and Azure.AI.AgentServer.Invocations for arbitrary
+      JSON Invocations handlers. Azure.AI.AgentServer.Core is the shared
+      hosting dependency, and Azure.Identity supplies Microsoft Entra
+      authentication. For .NET Agent Framework hosting, use the Foundry
+      hosting extensions and wire the ASP.NET app with AddFoundryResponses
+      and MapFoundryResponses after confirming exact overloads against the
+      installed package version.
+
+  - name: migration_checklist
+    prompt: |
+      List the migration steps from the initial hosted-agent preview to the
+      refreshed preview.
+    expected_patterns:
+      - "protocol libraries"
+      - "version 1.0.0"
+      - "HostedAgentDefinition"
+      - "dedicated agent Entra identity"
+      - "get_openai_client(agent_name="
+      - "azd ai agent"
+      - "active"
+    forbidden_patterns:
+      - "ImageBasedHostedAgentDefinition"
+      - "agent_reference"
+      - "capability host"
+      - "az cognitiveservices agent"
+      - 'version="v1"'
+    tags:
+      - migration
+      - refreshed-preview
+    mock_response: |
+      Migrate to the refreshed preview by replacing framework adapters with
+      protocol libraries, updating protocol declarations to version 1.0.0,
+      using HostedAgentDefinition for direct SDK deployments, and routing
+      Responses calls through get_openai_client(agent_name="my-hosted-agent").
+      Update scripts to use azd ai agent commands, redeploy the container, and
+      wait until the hosted agent version status is active. Review RBAC because
+      runtime permissions now belong on the dedicated agent Entra identity,
+      while the project managed identity is used for platform image pulls.

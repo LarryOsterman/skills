@@ -54,6 +54,6 @@ npx skills add microsoft/skills --skill azure-sdk-python
 | `azure-storage-file-share-py` | File Shares |
 | `azure-storage-queue-py` | Queue Storage |
 | `fastapi-router-py` | FastAPI Router Patterns |
-| `hosted-agents-v2-py` | Hosted Agents v2 |
+| `hosted-agents-v2-py` | Hosted agents refreshed preview: protocol libraries, azd deployment, Python/.NET hosts |
 | `m365-agents-py` | M365 Agents SDK |
 | `pydantic-models-py` | Pydantic Model Patterns |

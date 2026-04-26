@@ -48,8 +48,8 @@ The `microsoft-foundry` skill routes between sub-skills for end-to-end Foundry w
 |-------|----------------|
 | `azure-ai-projects-py` | Foundry project client, versioned agents, evals, connections |
 | `agent-framework-azure-ai-py` | Agent Framework SDK -- persistent agents, hosted tools, MCP integration |
-| `agents-v2-py` | Container-based hosted agents with `ImageBasedHostedAgentDefinition` |
-| `hosted-agents-v2-py` | Hosted agents running custom code in Foundry |
+| `agents-v2-py` | Initial-preview container agent patterns; prefer `hosted-agents-v2-py` for refreshed hosted agents |
+| `hosted-agents-v2-py` | Hosted agents refreshed preview: protocol libraries, azd deployment, Python/.NET hosts |
 | `azure-search-documents-py` | AI Search -- vector, hybrid, semantic ranking, agentic retrieval |
 | `azure-ai-voicelive-py` | Real-time bidirectional voice AI over WebSocket |
 | `azure-ai-contentsafety-py` | Harmful content detection for text and images |
