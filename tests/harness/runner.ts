@@ -292,6 +292,7 @@ export class SkillEvaluationRunner {
 
       // Evaluate
       const evalResult = evaluator.evaluate(genResult.code, scenario.name);
+      evalResult.rawResponse = genResult.rawResponse;
 
       // Add scenario-specific checks
       this.checkScenarioPatterns(evalResult, scenario, genResult.code);
@@ -621,6 +622,7 @@ function summaryToDict(summary: EvaluationSummary): Record<string, unknown> {
       skill_name: r.skillName,
       scenario: r.scenario,
       generated_code: r.generatedCode,
+      raw_response: r.rawResponse,
       passed: r.passed,
       score: r.score,
       error_count: r.errorCount,
@@ -770,6 +772,7 @@ function convertRalphToSummary(ralph: RalphLoopSummary): EvaluationSummary {
         skillName: ralph.skillName,
         scenario: scenarioName,
         generatedCode: lastIteration.generatedCode,
+        rawResponse: "",
         findings: lastIteration.findings,
         matchedCorrect: [],
         matchedIncorrect: [],

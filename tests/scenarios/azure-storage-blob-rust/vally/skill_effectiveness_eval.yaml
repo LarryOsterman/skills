@@ -37,7 +37,7 @@ stimuli:
       - "Uses correct Azure client construction, response handling, and pager usage where applicable."
       - "Avoids hardcoded secrets in source code or configuration committed to the workspace."
       - "rustfmt compliance is bonus quality signal only and should not block a successful evaluation when all substantive correctness and SDK-usage criteria pass."
-    workspace_files:
+    artifacts:
       include:
         - "**/Cargo.toml"
         - "**/Cargo.lock"
@@ -61,8 +61,6 @@ stimuli:
         - "**/*.lib"
         - "**/*.wasm"
     environment:
-      skills:
-        - ../../../../.github/plugins/azure-sdk-rust/skills/azure-storage-blob-rust
       files:
         - src: ../../_shared/vally/tools/find-cargo-root.js
           dest: .vally/tools/find-cargo-root.js
@@ -231,46 +229,3 @@ stimuli:
             - "+nightly"
             - "-Zscript"
             - ".vally/tools/check-no-secrets.rs"
-      - name: Rust Cargo Trajectory Build Failure
-        type: rust-cargo-build-failure-check
-        weight: 1.0
-        config:
-          collect_trajectory_compiler_errors: true
-          emit_in_metadata: true
-          error_exceptions:
-            - error_code: E0277
-              message_pattern: "Option<std::string::String>"
-              action: ignore_for_fail
-      - name: Post prompt Rust Cargo Build Failure
-        type: rust-cargo-build-failure-check
-        weight: 1.0
-        config:
-          commands:
-            - command: cargo build
-          emit_in_metadata: true
-          error_exceptions:
-            - error_code: E0277
-              message_pattern: "Option<std::string::String>"
-              action: ignore_for_fail
-      - name: Post prompt Rust Cargo Check Failure
-        type: rust-cargo-build-failure-check
-        weight: 1.0
-        config:
-          commands:
-            - command: cargo check
-          emit_in_metadata: true
-          error_exceptions:
-            - error_code: E0277
-              message_pattern: "Option<std::string::String>"
-              action: ignore_for_fail
-      - name: Post prompt Rust Cargo Clippy Failure
-        type: rust-cargo-build-failure-check
-        weight: 1.0
-        config:
-          commands:
-            - command: cargo clippy
-          emit_in_metadata: true
-          error_exceptions:
-            - error_code: E0277
-              message_pattern: "Option<std::string::String>"
-              action: ignore_for_fail

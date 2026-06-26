@@ -63,7 +63,7 @@ stimuli:
       - "Uses TokenCredential for secure authentication."
       - "Async/await with Tokio and proper error handling."
       - "Code compiles without warnings."
-    workspace_files:
+    artifacts:
       include:
         - "**/Cargo.toml"
         - "**/Cargo.lock"

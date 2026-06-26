@@ -63,7 +63,7 @@ stimuli:
       - "Async/await with Tokio runtime."
       - "Code compiles without warnings."
       - "Result-based error propagation with ? operator."
-    workspace_files:
+    artifacts:
       include:
         - "**/Cargo.toml"
         - "**/Cargo.lock"

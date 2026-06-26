@@ -37,7 +37,7 @@ stimuli:
       - "Uses correct Azure client construction, response handling, and pager usage where applicable."
       - "Avoids hardcoded secrets in source code or configuration committed to the workspace."
       - "rustfmt compliance is bonus quality signal only and should not block a successful evaluation when all substantive correctness and SDK-usage criteria pass."
-    workspace_files:
+    artifacts:
       include:
         - "**/Cargo.toml"
         - "**/Cargo.lock"

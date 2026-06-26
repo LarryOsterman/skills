@@ -54,7 +54,7 @@ stimuli:
       - "Builder pattern used for both client initialization."
       - "StartLocation configuration for consumer start position (Earliest/Latest)."
       - "Proper extraction of event body data from stream."
-    workspace_files:
+    artifacts:
       include:
         - "**/Cargo.toml"
         - "**/Cargo.lock"

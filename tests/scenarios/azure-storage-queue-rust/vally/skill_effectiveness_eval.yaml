@@ -41,7 +41,7 @@ stimuli:
       - "Message delete operations use both message_id and pop_receipt from received messages."
       - "Peek operations demonstrate reading messages without consuming them from the queue."
       - "Avoids hardcoded credentials in source code."
-    workspace_files:
+    artifacts:
       include:
         - "**/Cargo.toml"
         - "**/Cargo.lock"

@@ -55,7 +55,7 @@ stimuli:
       - "Demonstrates both queue (point-to-point) and topic (pub-sub) patterns."
       - "Async/await with Tokio runtime and proper error handling."
       - "Code compiles without warnings and follows Rust idioms."
-    workspace_files:
+    artifacts:
       include:
         - "**/Cargo.toml"
         - "**/Cargo.lock"

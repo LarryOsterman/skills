@@ -10,6 +10,8 @@ results.md
 results.json
 *.report.md
 *.report.json
+vally-experiment-result/
+coverage/
 
 # =============================================================================
 # Node.js
