@@ -116,8 +116,9 @@ scenarios:
       - "api_definitions.create_or_update"
       - "ApiVersion("
       - "ApiDefinition("
-      - "specification="
-      - "VersionStage"
+      - "ApiVersionProperties("
+      - "ApiDefinitionProperties("
+      - "begin_import_specification"
       - "workspace_name="
     forbidden_patterns:
       #      - "import_specification" # Should be forbidden because the actual API is `begin_import_specification`
@@ -136,7 +137,10 @@ scenarios:
       from azure.mgmt.apicenter.models import (
           ApiSpecImportRequest,
           ApiSpecImportSourceFormat,
+          ApiDefinition,
+          ApiDefinitionProperties,
           ApiVersion,
+          ApiVersionProperties,
           LifecycleStage,
       )
 
@@ -153,23 +157,40 @@ scenarios:
               api_name="my-api",
               version_name="v1.0",
               resource=ApiVersion(
-                  title="Version 1.0",
-                  lifecycle_stage=LifecycleStage.PRODUCTION,
+                  properties=ApiVersionProperties(
+                      title="Version 1.0",
+                      lifecycle_stage=LifecycleStage.PRODUCTION,
+                  ),
               ),
           )
 
-      client.api_definitions.import_specification(
-          resource_group_name="my-resource-group",
-          service_name="my-api-center",
-          workspace_name="default",
-          api_name="my-api",
-          version_name="v1.0",
-          definition_name="openapi",
-          body=ApiSpecImportRequest(
-              format=ApiSpecImportSourceFormat.INLINE,
-              value='{"openapi":"3.0.0","info":{"title":"My API","version":"1.0","description":"Production OpenAPI specification for My API"},"paths":{}}',
-          ),
-      )
+          client.api_definitions.create_or_update(
+              resource_group_name="my-resource-group",
+              service_name="my-api-center",
+              workspace_name="default",
+              api_name="my-api",
+              version_name="v1.0",
+              definition_name="openapi",
+              resource=ApiDefinition(
+                  properties=ApiDefinitionProperties(
+                      title="OpenAPI Definition",
+                      description="OpenAPI 3.0 specification",
+                  ),
+              ),
+          )
+
+          client.api_definitions.begin_import_specification(
+              resource_group_name="my-resource-group",
+              service_name="my-api-center",
+              workspace_name="default",
+              api_name="my-api",
+              version_name="v1.0",
+              definition_name="openapi",
+              body=ApiSpecImportRequest(
+                  format=ApiSpecImportSourceFormat.INLINE,
+                  value='{"openapi":"3.0.0","info":{"title":"My API","version":"1.0","description":"Production OpenAPI specification for My API"},"paths":{}}',
+              ),
+          ).result()
 
       print(f"Created API version and imported specification: {version.title}")
 
@@ -188,7 +209,6 @@ scenarios:
       - "deployment_name="
       - "workspace_name="
     forbidden_patterns:
-      - "environment_id="
       - "deployment_id="
       - "workspace_name=None"
       - "environment_name=None"
