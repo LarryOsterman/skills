@@ -295,9 +295,12 @@ Generate only code. Follow the patterns from the skill documentation exactly.
     const codeLines: string[] = [];
     let inCode = false;
 
+    const assignmentRegex = /^[A-Za-z_][A-Za-z0-9_]*\s*=\s*.+$/;
+    const callStartRegex = /^[A-Za-z_][A-Za-z0-9_.]*\s*\(.+$/;
+
     for (const line of lines) {
-      // Heuristic: lines starting with import, def, class, or indented
-      if (
+      const trimmed = line.trim();
+      const isCodeLikeLine =
         line.startsWith("import ") ||
         line.startsWith("from ") ||
         line.startsWith("def ") ||
@@ -307,8 +310,12 @@ Generate only code. Follow the patterns from the skill documentation exactly.
         line.startsWith("let ") ||
         line.startsWith("using ") ||
         line.startsWith("    ") ||
-        line.startsWith("\t")
-      ) {
+        line.startsWith("\t") ||
+        assignmentRegex.test(trimmed) ||
+        callStartRegex.test(trimmed);
+
+      // Heuristic: lines starting with import, def, class, or indented
+      if (isCodeLikeLine) {
         inCode = true;
         codeLines.push(line);
       } else if (inCode && line.trim() === "") {
