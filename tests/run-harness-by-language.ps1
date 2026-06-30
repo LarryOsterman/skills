@@ -113,6 +113,43 @@ $results = @{
     }
 }
 
+function Get-DiagnosticErrorKind {
+    param(
+        [string[]]$Diagnostics
+    )
+
+    $joined = ($Diagnostics -join "`n").ToLowerInvariant()
+
+    if ($joined -match "authentication failed|bad credentials|github cli user login|401") {
+        return "auth"
+    }
+    if ($joined -match "timeout|session\.idle|timed out") {
+        return "timeout"
+    }
+    if ($joined -match "rate limit|429|econnreset|etimedout|socket hang up|temporarily unavailable|service unavailable") {
+        return "transient"
+    }
+    if ($joined -match "empty or invalid|failed to parse|did not produce json output file") {
+        return "parse"
+    }
+
+    return "fatal"
+}
+
+function Test-HarnessAuthPreflight {
+    if ($env:GH_TOKEN -or $env:GITHUB_TOKEN) {
+        return $true
+    }
+
+    try {
+        $null = & gh auth status 2>&1
+        return $LASTEXITCODE -eq 0
+    }
+    catch {
+        return $false
+    }
+}
+
 function Get-HarnessModeResult {
     param(
         [Parameter(Mandatory = $true)]
@@ -137,8 +174,10 @@ function Get-HarnessModeResult {
 
     try {
         if (-not (Test-Path $tempJson)) {
+            $kind = Get-DiagnosticErrorKind -Diagnostics @($rawOutput)
             return @{
                 status      = "ERROR"
+                error_kind  = $kind
                 exit_code   = $exitCode
                 error       = "Harness did not produce JSON output file."
                 diagnostics = @($rawOutput)
@@ -146,14 +185,42 @@ function Get-HarnessModeResult {
         }
 
         $jsonText = Get-Content $tempJson -Raw
+        if ([string]::IsNullOrWhiteSpace($jsonText)) {
+            $kind = Get-DiagnosticErrorKind -Diagnostics @($rawOutput)
+            return @{
+                status      = "ERROR"
+                error_kind  = $kind
+                exit_code   = $exitCode
+                error       = "Harness JSON output file was empty."
+                diagnostics = @($rawOutput)
+            }
+        }
+
         $parsed = $jsonText | ConvertFrom-Json -Depth 100
 
         if ($null -eq $parsed) {
+            $kind = Get-DiagnosticErrorKind -Diagnostics @($rawOutput)
             return @{
                 status      = "ERROR"
+                error_kind  = $kind
                 exit_code   = $exitCode
                 error       = "Harness JSON output was empty or invalid."
                 diagnostics = @($rawOutput)
+            }
+        }
+
+        if ($parsed.status -eq "ERROR") {
+            $combinedDiagnostics = @($rawOutput)
+            if ($parsed.diagnostics) {
+                $combinedDiagnostics += @($parsed.diagnostics)
+            }
+
+            return @{
+                status      = "ERROR"
+                error_kind  = if ($parsed.error_kind) { $parsed.error_kind } else { Get-DiagnosticErrorKind -Diagnostics $combinedDiagnostics }
+                exit_code   = $exitCode
+                error       = if ($parsed.error) { $parsed.error } else { "Harness reported an execution error." }
+                diagnostics = $combinedDiagnostics
             }
         }
 
@@ -198,8 +265,10 @@ function Get-HarnessModeResult {
         return $result
     }
     catch {
+        $kind = Get-DiagnosticErrorKind -Diagnostics @($rawOutput)
         return @{
             status      = "ERROR"
+            error_kind  = $kind
             exit_code   = $exitCode
             error       = "Failed to parse harness JSON output: $($_.Exception.Message)"
             diagnostics = @($rawOutput)
@@ -212,6 +281,16 @@ function Get-HarnessModeResult {
 
 # Run harness for each skill
 Set-Location $testsDir
+
+$canRunRealHarness = $true
+if ($runReal) {
+    $canRunRealHarness = Test-HarnessAuthPreflight
+    if (-not $canRunRealHarness) {
+        Write-Host "Real harness auth preflight failed. Skipping all real-mode runs." -ForegroundColor Red
+        Write-Host "Run 'gh auth login' or set GH_TOKEN/GITHUB_TOKEN, then rerun." -ForegroundColor Yellow
+        Write-Host ""
+    }
+}
 
 foreach ($skill in $skills) {
     $skillResult = @{
@@ -261,6 +340,20 @@ foreach ($skill in $skills) {
     
     # Real harness
     if ($runReal) {
+        if (-not $canRunRealHarness) {
+            Write-Host "  [REAL]  Skipped (auth preflight failed)" -ForegroundColor Red
+            $results.summary.real.failed++
+            $results.summary.real.errors += "$skill (AUTH_ERROR)"
+            $skillResult.real = @{
+                status     = "ERROR"
+                error_kind = "auth"
+                error      = "Skipped due to failed auth preflight. Run 'gh auth login' or set GH_TOKEN/GITHUB_TOKEN."
+            }
+            Write-Host ""
+            $results.skills += $skillResult
+            continue
+        }
+
         Write-Host "  [REAL]  Running..." -ForegroundColor Gray -NoNewline
         try {
             $realResult = Get-HarnessModeResult -Skill $skill -UseMock $false -IncludeDetails:$ShowDetails

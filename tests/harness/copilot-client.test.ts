@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { SkillCopilotClient } from "./copilot-client.js";
+import {
+  CopilotGenerationError,
+  SkillCopilotClient,
+  classifyCopilotError,
+} from "./copilot-client.js";
 
 describe("SkillCopilotClient.extractCode", () => {
   it("keeps assignment line for multiline constructor call without fences", () => {
@@ -42,5 +46,34 @@ describe("SkillCopilotClient.extractCode", () => {
     ).extractCode(response);
 
     expect(extracted).toBe("x = 1\nprint(x)");
+  });
+});
+
+describe("classifyCopilotError", () => {
+  it("classifies timeout and marks retryable", () => {
+    const classified = classifyCopilotError(
+      new Error("Timeout after 120000ms waiting for session.idle"),
+    );
+
+    expect(classified.kind).toBe("timeout");
+    expect(classified.retryable).toBe(true);
+  });
+
+  it("classifies auth and marks non-retryable", () => {
+    const classified = classifyCopilotError(
+      new Error(
+        "Authentication failed: Failed to fetch GitHub CLI user login (401): Bad credentials",
+      ),
+    );
+
+    expect(classified.kind).toBe("auth");
+    expect(classified.retryable).toBe(false);
+  });
+
+  it("returns existing classified errors unchanged", () => {
+    const original = new CopilotGenerationError("transient", "429", true);
+    const classified = classifyCopilotError(original);
+
+    expect(classified).toBe(original);
   });
 });

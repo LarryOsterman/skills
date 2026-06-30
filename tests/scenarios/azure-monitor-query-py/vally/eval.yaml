@@ -27,6 +27,7 @@ stimuli:
       - Uses the APIs, imports, and workflow expected by the skill.
       - Keeps credentials in environment variables and avoids hardcoded secrets.
       - Provides complete executable Python code with clear control flow and error handling.
+      - Includes explicit try/except exception handling.
       - Uses modern Python conventions and readable structure.
     graders:
       - type: run-command
@@ -75,6 +76,7 @@ stimuli:
       - Uses the APIs, imports, and workflow expected by the skill.
       - Keeps credentials in environment variables and avoids hardcoded secrets.
       - Provides complete executable Python code with clear control flow and error handling.
+      - Includes explicit try/except exception handling.
       - Uses modern Python conventions and readable structure.
     graders:
       - type: run-command

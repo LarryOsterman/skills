@@ -27,7 +27,8 @@ stimuli:
     rubric:
       - Uses the APIs, imports, and workflow expected by the skill.
       - Keeps credentials in environment variables and avoids hardcoded secrets.
-      - Provides complete executable Python code with clear control flow and error handling.
+      - Includes explicit try/except exception handling.
+      - Provides complete executable Python code with clear control flow.
       - Uses modern Python conventions and readable structure.
     graders:
       - type: run-command
@@ -53,12 +54,13 @@ stimuli:
           model: gpt-5.3-codex
           prompt: |-
             Evaluate whether the generated Python code is idiomatic.
-            Pass only when the code uses Pythonic naming, clear control flow,
-            explicit exception handling (no bare except), avoids wildcard imports,
-            and uses context managers or lifecycle-safe patterns where relevant.
-            Fail immediately if no Python code is generated.
-            Treat missing code as an automatic failure when there is no `.py` file in the workspace
-            and no substantive Python code in the assistant output.
+            Pass only when:
+            1. The code includes try/except blocks (explicit exception handling required)
+            2. Uses Pythonic naming and clear control flow
+            3. Avoids wildcard imports
+            4. Uses context managers or lifecycle-safe patterns where relevant
+            5. Uses proper error handling (no bare except clauses)
+            Fail immediately if no Python code is generated or if there are no try/except blocks.
           scoring: scale_1_5
   - name: singleton_container_initialization
     prompt: |-
@@ -76,7 +78,8 @@ stimuli:
     rubric:
       - Uses the APIs, imports, and workflow expected by the skill.
       - Keeps credentials in environment variables and avoids hardcoded secrets.
-      - Provides complete executable Python code with clear control flow and error handling.
+      - Includes explicit try/except exception handling.
+      - Provides complete executable Python code with clear control flow.
       - Uses modern Python conventions and readable structure.
     graders:
       - type: run-command
@@ -102,12 +105,13 @@ stimuli:
           model: gpt-5.3-codex
           prompt: |-
             Evaluate whether the generated Python code is idiomatic.
-            Pass only when the code uses Pythonic naming, clear control flow,
-            explicit exception handling (no bare except), avoids wildcard imports,
-            and uses context managers or lifecycle-safe patterns where relevant.
-            Fail immediately if no Python code is generated.
-            Treat missing code as an automatic failure when there is no `.py` file in the workspace
-            and no substantive Python code in the assistant output.
+            Pass only when:
+            1. The code includes try/except blocks (explicit exception handling required)
+            2. Uses Pythonic naming and clear control flow
+            3. Avoids wildcard imports
+            4. Uses context managers or lifecycle-safe patterns where relevant
+            5. Uses proper error handling (no bare except clauses)
+            Fail immediately if no Python code is generated or if there are no try/except blocks.
           scoring: scale_1_5
 constraints:
   expect_skills:

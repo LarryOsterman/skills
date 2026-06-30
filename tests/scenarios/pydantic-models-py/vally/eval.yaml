@@ -33,6 +33,7 @@ stimuli:
       - Uses the APIs, imports, and workflow expected by the skill.
       - Keeps credentials in environment variables and avoids hardcoded secrets.
       - Provides complete executable Python code with clear control flow and error handling.
+      - Includes explicit try/except exception handling.
       - Uses modern Python conventions and readable structure.
     graders:
       - type: run-command
@@ -42,6 +43,7 @@ stimuli:
           command: node
           args:
             - .vally/tools/check-python-syntax.mjs
+            - .vally/syntax-check-config.json
           timeout: 90s
       - type: run-command
         name: Python idiomatic static checks
@@ -88,6 +90,7 @@ stimuli:
       - Uses the APIs, imports, and workflow expected by the skill.
       - Keeps credentials in environment variables and avoids hardcoded secrets.
       - Provides complete executable Python code with clear control flow and error handling.
+      - Includes explicit try/except exception handling.
       - Uses modern Python conventions and readable structure.
     graders:
       - type: run-command
@@ -97,6 +100,7 @@ stimuli:
           command: node
           args:
             - .vally/tools/check-python-syntax.mjs
+            - .vally/syntax-check-config.json
           timeout: 90s
       - type: run-command
         name: Python idiomatic static checks
@@ -131,6 +135,10 @@ environment:
       dest: .vally/tools/check-python-syntax.mjs
     - src: ../../_shared/vally/tools/check-python-idiomatic.mjs
       dest: .vally/tools/check-python-idiomatic.mjs
+    - src: ./syntax-check-config.json
+      dest: .vally/syntax-check-config.json
+    - src: ./syntax-check-config.json
+      dest: .vally/syntax-check-config.json
 artifacts:
   include:
     - "**/*.py"
