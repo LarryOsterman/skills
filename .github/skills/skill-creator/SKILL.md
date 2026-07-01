@@ -89,17 +89,71 @@ For Azure SDK skills, follow the **Skill Section Order** below. For domain skill
 
 ### Bundled Resources (Optional)
 
-| Type          | When to Include           | Examples                   |
-| ------------- | ------------------------- | -------------------------- |
-| `scripts/`    | Reused code patterns      | Auth setup, CLI scripts    |
+| Type          | When to Include                          | Examples                                                   |
+| ------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| `scripts/`    | Reused code patterns                     | Auth setup, CLI scripts                                    |
 | `references/` | Feature deep-dives and overflow examples | `capabilities.md` index, `non-hero-scenarios.md`, API docs |
-| `assets/`     | Output templates          | Boilerplate code, images   |
+| `assets/`     | Output templates                         | Boilerplate code, images                                   |
 
 ---
 
 ## Creating Azure SDK Skills
 
 When creating skills for Azure SDKs, follow these patterns consistently.
+
+### Token Budget Guidelines (REQUIRED)
+
+Every Azure SDK skill MUST stay within these token limits:
+
+| Section                       | Target           | Absolute Max     |
+| ----------------------------- | ---------------- | ---------------- |
+| Installation + Env Vars       | 100 tokens       | 150              |
+| Authentication & Lifecycle    | 200 tokens       | 300              |
+| Core Workflow (1 example)     | 300 tokens       | 400              |
+| Feature Tables                | 200 tokens       | 300              |
+| Best Practices (6-8 items)    | 200 tokens       | 250              |
+| References (reference/ links) | 100 tokens       | 150              |
+| **Total SKILL.md**            | **~1100 tokens** | **~1500 tokens** |
+
+**Enforcement**:
+
+- Exceeding max limit → refactor into `/references/` subdirectories
+- When approaching 500 lines → move entire sections to reference files
+- Annotate with `# Token Count: ~XXXX` at top of completed skill
+
+---
+
+### Core Workflow Discipline (REQUIRED)
+
+Every Azure SDK skill must clarify which workflow(s) it documents.
+
+**Case 1: Single clear "core workflow"** (majority of services)
+
+If one pattern handles ~80% of use cases:
+
+1. Designate it as the core workflow
+2. Show ONLY this workflow in SKILL.md (one complete, runnable example)
+3. Defer alternatives to `/references/`:
+   - Batch operations → `/references/batch-operations.md`
+   - Error handling → `/references/error-handling.md`
+   - Performance tuning → `/references/performance.md`
+   - Alternative workflows → `/references/other-workflows.md`
+
+**Example**: Azure Key Vault Secrets (core workflow: retrieve a secret using managed identity). Alternative workflows in `/references/`: API-key auth, certificate auth, service principal auth.
+
+**Case 2: Multiple equally-valid "core workflows"** (e.g., authentication strategies, deployment targets)
+
+If no single pattern dominates:
+
+1. Pick the most common workflow for SKILL.md
+2. Acknowledge other approaches in a `/references/workflows-comparison.md` that explains trade-offs (e.g., "Local dev uses DeveloperToolsCredential; production uses ManagedIdentityCredential")
+3. Do NOT treat valid alternatives as "advanced" — they're equally valid, just different contexts
+
+**Example**: Azure Identity SDK has 8 credential types. Pick `DefaultAzureCredential` for SKILL.md (covers most local + production scenarios). Document `ManagedIdentityCredential`, `WorkloadIdentityCredential`, `AzureCliCredential`, etc. in `/references/credential-types.md` without ranking them.
+
+**Decision rule**: If you're unsure, ask: "Would a user choosing the other approach call what I wrote wrong?" If no, both are core workflows—acknowledge both with trade-offs.
+
+---
 
 ### Skill Section Order
 
@@ -109,7 +163,7 @@ Follow this structure (based on existing Azure SDK skills):
 2. **Installation** — `pip install`, `npm install`, etc.
 3. **Environment Variables** — Required configuration, with an inline comment explaining when it's required . If using `DefaultAzureCredential`in production,include `AZURE_TOKEN_CREDENTIALS` (set to `prod` or `<specific_credential>`)
 4. **Authentication & Lifecycle** — Use a specific Microsoft Entra Token credential like `ManagedIdentityCredential` or `WorkloadIdentityCredential` for production. `DefaultAzureCredential` is only recommended for local development. To use DefaultAzureCredential in production, set the environment variable `AZURE_TOKEN_CREDENTIALS` to `prod` or the specific target credential. **For Python skills, this section MUST start with the standard callout block** (see [Required Authentication & Lifecycle Callout (Python)](#required-authentication--lifecycle-callout-python) below).
-5. **Core Workflow** — Minimal viable example
+5. **Core Workflow** — Minimal viable example (per core workflow discipline above)
 6. **Feature Tables** — Clients, methods, tools
 7. **Best Practices** — Numbered list
 8. **Reference Links** — Table linking to `/references/*.md` (for Azure SDK skills, include `capabilities.md` + `non-hero-scenarios.md`)
@@ -262,6 +316,45 @@ let client = BlobServiceClient::new(
 
 **Never hardcode credentials. Use environment variables.**
 
+### Anti-Patterns: What NOT to Do (REQUIRED Reading)
+
+**These patterns cause bloat and inefficiency. Every skill author must review this section before writing.**
+
+#### Anti-Pattern 1: "Exhaustive API Reference"
+
+- ❌ **Don't**: List all 50 SDK methods in a feature table with code samples for every variant
+- ✅ **Do**: Show 3-5 core methods in a table; link to official Azure API reference for exhaustive list
+- **Token cost**: Listing all methods + examples = 400-600 tokens wasted
+- **User impact**: Overwhelming cognitive load; users don't know what to use
+
+#### Anti-Pattern 2: "Multiple Ways to Solve One Problem"
+
+- ❌ **Don't**: "Here's approach A, B, C, and D to paginate results" in the main body
+- ✅ **Do**: "Use `ItemPaged` for sync pagination" (primary example); link alternatives to `/references/`
+- **Token cost**: Each alternate approach = 50-100 tokens; 5 approaches = skill becomes inefficient
+- **User impact**: Decision paralysis; users re-read everything
+
+#### Anti-Pattern 3: "Beginner + Intermediate + Advanced in One Skill"
+
+- ❌ **Don't**: Skill that goes from "what is a client?" to "custom retry policies" to "circuit breaker patterns"
+- ✅ **Do**: Core workflow covers 80% use case; advanced patterns in `/references/`
+- **Token cost**: Every skill level adds 200-300 tokens; three levels = 600-900 extra tokens
+- **User impact**: Experts bored, beginners overwhelmed; nobody gets what they need
+
+#### Anti-Pattern 4: "Restating Official Documentation"
+
+- ❌ **Don't**: "The CosmosClient constructor takes an endpoint (string) and credential (TokenCredential). The endpoint identifies the Azure Cosmos resource..."
+- ✅ **Do**: Show code: `client = CosmosClient(endpoint, credential)`. Link to official docs: `microsoft-docs` MCP.
+- **Token cost**: Verbose explanation = 50-100 tokens per parameter; large APIs waste 300+ tokens
+- **User impact**: Redundant; official docs are authoritative, skill should show usage not repeat them
+
+#### Anti-Pattern 5: "Verbose Explanation When Example Suffices"
+
+- ❌ **Don't**: "To create a client, you first instantiate the class using the constructor, passing the endpoint and credential parameters. The endpoint is a string that identifies your resource..."
+- ✅ **Do**: Show code immediately: `with CosmosClient(endpoint, credential) as client:`
+
+---
+
 ### Standard Verb Patterns
 
 Azure SDKs use consistent verbs across all languages:
@@ -304,15 +397,15 @@ Add both items verbatim (adapted only for language/SDK specifics) as the **first
 
 **Variants to apply when the SDK shape differs:**
 
-| Skill type                                           | Adjust item #1 to                                                                                                                | Adjust item #2 to                                                                                                                                                                                                              |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Async-only SDK (e.g. voicelive)                      | "This SDK is async-only; use the `.aio` namespace throughout."                                                                   | keep standard                                                                                                                                                                                                                  |
+| Skill type                                                                    | Adjust item #1 to                                                                                                                   | Adjust item #2 to                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Async-only SDK (e.g. voicelive)                                               | "This SDK is async-only; use the `.aio` namespace throughout."                                                                      | keep standard                                                                                                                                                                                                                  |
 | Framework guidance that is async-oriented (for example some agent frameworks) | "Use the framework's documented async patterns where required, but do not claim async is globally preferred for Azure Python SDKs." | keep standard                                                                                                                                                                                                                  |
-| Provider-pattern (OpenTelemetry exporters/distro)    | keep standard                                                                                                                    | "Call `provider.shutdown()` / `flush()` at process exit to flush telemetry — providers are not context managers."                                                                                                              |
-| REST-over-httpx skills                               | keep standard                                                                                                                    | "Use `with httpx.Client(...) as client:` (sync) or `async with httpx.AsyncClient(...) as client:` (async) so connections pool and close deterministically."                                                                    |
-| Identity skill                                       | keep standard                                                                                                                    | "Use credentials as context managers (`with DefaultAzureCredential() as credential:`) when they own token caches / HTTP transports you want cleaned up; for async, use `async with` on credentials from `azure.identity.aio`." |
-| FastAPI (non-Azure)                                  | "Pick `def` or `async def` per endpoint based on whether you call async I/O; do not mix sync and blocking calls in one handler." | "Manage long-lived resources (DB pools, HTTP clients) in `lifespan` and inject via `Depends`; use `with`/`async with` for per-request resources."                                                                              |
-| Pure model/schema skill (no I/O, e.g. pydantic)      | **skip both** — not applicable                                                                                                   | **skip**                                                                                                                                                                                                                       |
+| Provider-pattern (OpenTelemetry exporters/distro)                             | keep standard                                                                                                                       | "Call `provider.shutdown()` / `flush()` at process exit to flush telemetry — providers are not context managers."                                                                                                              |
+| REST-over-httpx skills                                                        | keep standard                                                                                                                       | "Use `with httpx.Client(...) as client:` (sync) or `async with httpx.AsyncClient(...) as client:` (async) so connections pool and close deterministically."                                                                    |
+| Identity skill                                                                | keep standard                                                                                                                       | "Use credentials as context managers (`with DefaultAzureCredential() as credential:`) when they own token caches / HTTP transports you want cleaned up; for async, use `async with` on credentials from `azure.identity.aio`." |
+| FastAPI (non-Azure)                                                           | "Pick `def` or `async def` per endpoint based on whether you call async I/O; do not mix sync and blocking calls in one handler."    | "Manage long-lived resources (DB pools, HTTP clients) in `lifespan` and inject via `Depends`; use `with`/`async with` for per-request resources."                                                                              |
+| Pure model/schema skill (no I/O, e.g. pydantic)                               | **skip both** — not applicable                                                                                                      | **skip**                                                                                                                                                                                                                       |
 
 **Enforcement in code examples.** Every code example inside the skill must itself obey both rules, so the skill demonstrates what it prescribes:
 
@@ -335,6 +428,30 @@ Add both items verbatim (adapted only for language/SDK specifics) as the **first
 5. **Assign appropriate RBAC roles for Entra ID auth.** For production authentication using Entra ID, ensure the identity has the necessary RBAC role assigned (e.g., "Storage Blob Data Contributor" for blob write access).
 
 6. **Always verify package versions using crates.io.** Before using a package, check its version on [crates.io](https://crates.io/) to ensure you are using a stable and supported release.
+
+### Example Effective Skills (Benchmark These)
+
+**Study these 4 skills for conciseness, focus, and efficiency.** Your new skills should match this profile or explicitly explain why they're larger.
+
+| Skill                       | Est. Tokens | Tokens Δ    | Quality Δ  | Key Pattern to Copy                                       |
+| --------------------------- | ----------- | ----------- | ---------- | --------------------------------------------------------- |
+| `azure-ai-ml-py`            | ~1,200      | **-39%** ✅ | Maintained | Single workflow: train + register model; concise examples |
+| `azure-ai-textanalytics-py` | ~1,100      | **-39%** ✅ | Maintained | Feature table (5-7 core methods); minimal prose           |
+| `azure-ai-contentsafety-py` | ~1,150      | **-37%** ✅ | Maintained | Compact use-case focus; each example is 1-2 lines         |
+| `azure-appconfiguration-py` | ~1,180      | **-34%** ✅ | Maintained | Strategic link to references; no comprehensive API doc    |
+
+**Why these are effective**:
+
+1. Stay under 1,200 tokens (core limit)
+2. Show ONE canonical workflow, not 5 variants
+3. Show 1-2 examples per concept, not 3-5
+4. Use tables for API summary (not prose descriptions)
+5. Link to official docs via `microsoft-docs` MCP instead of duplicating
+6. Move advanced patterns to `/references/`
+
+**Before writing your skill**: Ask "Which of these 4 is my use case most similar to?" then mirror that structure.
+
+---
 
 ### Handling Deprecated or Rebranded SDKs
 
@@ -471,12 +588,12 @@ item = client.create_item(name="example", data={...})
 
 ## Reference Files
 
-| File                                                           | Contents                                                |
-| -------------------------------------------------------------- | ------------------------------------------------------- |
-| [references/capabilities.md](references/capabilities.md)       | Capability index (hero coverage + links to deep-dives) |
-| [references/non-hero-scenarios.md](references/non-hero-scenarios.md) | Concrete non-hero examples                              |
-| [references/tools.md](references/tools.md)                     | Tool integrations                                       |
-| [references/streaming.md](references/streaming.md)             | Event streaming patterns                                |
+| File                                                                 | Contents                                               |
+| -------------------------------------------------------------------- | ------------------------------------------------------ |
+| [references/capabilities.md](references/capabilities.md)             | Capability index (hero coverage + links to deep-dives) |
+| [references/non-hero-scenarios.md](references/non-hero-scenarios.md) | Concrete non-hero examples                             |
+| [references/tools.md](references/tools.md)                           | Tool integrations                                      |
+| [references/streaming.md](references/streaming.md)                   | Event streaming patterns                               |
 ```
 
 ---
@@ -860,7 +977,7 @@ Before finalizing any regenerated skill:
 6. If the SDK has broad operation-group coverage (common in management SDKs), include an operation-group table and explicitly call out which groups are covered in snippets vs. referenced only.
 7. Never claim "full API surface" unless the skill genuinely demonstrates all major operation groups; otherwise state that the skill is optimized for hero workflows plus selected secondary scenarios.
 
-3. **Validate regenerated skill behavior**
+8. **Validate regenerated skill behavior**
 
 ```bash
 cd tests
@@ -1031,9 +1148,9 @@ azure-ai-agents/
 | Use wrong import paths                                                         | Azure SDKs have specific module structures                                          |
 | Omit sync/async + context-manager bullets from Best Practices in Python skills | End users won't follow rules that aren't written down; examples alone aren't enough |
 | Mix sync and async in the same Python example                                  | Demonstrates the anti-pattern the skill is supposed to prevent                      |
-| Ship regenerated skills with zero test scenarios                               | Hero workflows and regressions cannot be validated                                   |
-| Claim full API coverage from a single happy-path sample                        | Hides operation-group and non-hero gaps users need for production                    |
-| Omit `references/*.md` coverage for non-hero capabilities                      | Forces advanced capabilities out of context and leaves API breadth undocumented       |
+| Ship regenerated skills with zero test scenarios                               | Hero workflows and regressions cannot be validated                                  |
+| Claim full API coverage from a single happy-path sample                        | Hides operation-group and non-hero gaps users need for production                   |
+| Omit `references/*.md` coverage for non-hero capabilities                      | Forces advanced capabilities out of context and leaves API breadth undocumented     |
 
 ---
 

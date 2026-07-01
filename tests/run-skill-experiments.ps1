@@ -442,14 +442,20 @@ foreach ($result in $results) {
         $turnsDelta = "$dir $($turnChange.ToString('+0;-0'))"
     }
     
+    # Build status indicator
+    $statusIcon = if ($result.Status -eq "PASSED") { "PASS" } else { "FAIL" }
+    
+    # Build verdict display
+    $verdictDisplay = $verdict -replace "✓ ", "[GOOD] " -replace "✗ ", "[BAD]  " -replace "~ ", "[NEUT] "
+    
     $resultsTable += [PSCustomObject]@{
-        Skill          = $result.Skill
-        Status         = if ($result.Status -eq "PASSED") { "✓" } else { "✗" }
-        Verdict        = $verdict
-        'Tokens Δ'     = if ($tokensDelta) { $tokensDelta } else { "N/A" }
-        'Turns Δ'      = if ($turnsDelta) { $turnsDelta } else { "N/A" }
-        Errors         = $result.SkillErrors
-        'Duration (s)' = $result.Duration.ToString('F1')
+        Skill      = $result.Skill
+        Status     = $statusIcon
+        Verdict    = $verdictDisplay
+        'Tokens %' = if ($tokensDelta) { $tokensDelta } else { "N/A" }
+        'Turns'    = if ($turnsDelta) { $turnsDelta } else { "N/A" }
+        Errors     = $result.SkillErrors
+        'Duration' = $result.Duration.ToString('F1') + "s"
     }
 }
 
