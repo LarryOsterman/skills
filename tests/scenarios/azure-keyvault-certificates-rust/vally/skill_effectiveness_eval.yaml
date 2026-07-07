@@ -126,6 +126,7 @@ stimuli:
             - "+nightly"
             - "-Zscript"
             - ".vally/tools/check-azure-crates.rs"
+        timeout: 3m
       - name: TokenCredential Authentication
         type: program
         weight: 1.0
@@ -160,7 +161,7 @@ stimuli:
           command: cargo
           args:
             - "check"
-          timeout: 90s
+          timeout: 3m
       - name: Rust Clippy Lints
         type: run-command
         weight: 1.0
@@ -171,7 +172,7 @@ stimuli:
             - "--"
             - "-D"
             - "warnings"
-          timeout: 120s
+          timeout: 3m
       - type: run-command
         name: "Cargo Build"
         config:
