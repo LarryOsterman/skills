@@ -33,7 +33,7 @@ jobs:
       # Authenticates the Copilot CLI process vally spawns (see the
       # copilot-requests permission note above). GH_TOKEN takes
       # precedence over GITHUB_TOKEN if both are set.
-      GH_TOKEN: ${{ github.token }}
+    #      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
