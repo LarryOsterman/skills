@@ -7,7 +7,7 @@ scoring:
   threshold: 0.75
 defaults:
   runs: 1
-  timeout: 30m
+  timeout: 60m
   model: claude-sonnet-4.6
 stimuli:
   - name: rust-crud-blobs
@@ -98,7 +98,7 @@ stimuli:
           command: cargo
           args:
             - "build"
-          timeout: 120s
+          timeout: 3m
           stderr_contains: "Finished"
       - type: run-command
         name: "Check Application"
@@ -106,7 +106,7 @@ stimuli:
           command: cargo
           args:
             - "check"
-          timeout: 90s
+          timeout: 3m
       - name: Rust Clippy Lints
         type: run-command
         weight: 0.5

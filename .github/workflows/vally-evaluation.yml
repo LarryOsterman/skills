@@ -19,13 +19,21 @@ on:
 
 permissions:
   contents: read
+  # eval.yaml's `executor: copilot-sdk` makes vally spawn the real GitHub
+  # Copilot CLI (`@github/copilot`, pulled in transitively via the vally npm
+  # dependency tree -- no extra install step needed) to run each stimulus.
+  # That CLI authenticates via the GH_TOKEN/GITHUB_TOKEN env var, which
+  # requires the GITHUB_TOKEN to carry the "Copilot Requests" permission.
+  copilot-requests: write
 
 jobs:
   vally:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.COPILOT_TOKEN || '' }}
-
+      # Authenticates the Copilot CLI process vally spawns (see the
+      # copilot-requests permission note above). GH_TOKEN takes
+      # precedence over GITHUB_TOKEN if both are set.
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -159,7 +167,7 @@ jobs:
       - name: Skip eval when token is unavailable
         if: ${{ steps.specs.outputs.has_specs == 'true' && env.GH_TOKEN == '' }}
         run: |
-          echo "::warning::COPILOT_TOKEN secret is not available. Skipping vally eval run and keeping lint-only validation."
+          echo "::warning::GH_TOKEN secret is not available. Skipping vally eval run and keeping lint-only validation."
 
       - name: Upload Vally artifacts
         if: always()

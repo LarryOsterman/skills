@@ -123,6 +123,31 @@ Every Azure SDK skill MUST stay within these token limits:
 
 ---
 
+### Reference Extraction Guide (REQUIRED)
+
+Decide what goes in SKILL.md vs. `/references/` using these signals:
+
+| Signal         | Move to `/references/`              | Keep in SKILL.md       |
+| -------------- | ----------------------------------- | ---------------------- |
+| Use frequency  | <20% of typical use                 | ~80%+ of workflows     |
+| Cognitive load | Advanced patterns, multiple options | Single happy path      |
+| Example length | >10 lines, multiple paths           | 1-5 lines, single path |
+
+**Content extraction rules:**
+
+- **Batch operations** → `/references/batch-operations.md`
+- **Error handling** (beyond try-except) → `/references/error-handling.md`
+- **Performance tuning** → `/references/performance.md`
+- **Alternative workflows** → `/references/workflows-comparison.md`
+- **Streaming/events** → `/references/streaming.md`
+- **Advanced auth** → `/references/auth-strategies.md`
+- **Tool integration** → `/references/tools.md`
+- **Breaking changes** → `/references/migration.md`
+
+**Decision:** Keep common case in SKILL.md, move edge cases to `/references/`.
+
+---
+
 ### Core Workflow Discipline (REQUIRED)
 
 Every Azure SDK skill must clarify which workflow(s) it documents.
@@ -352,6 +377,58 @@ let client = BlobServiceClient::new(
 
 - ❌ **Don't**: "To create a client, you first instantiate the class using the constructor, passing the endpoint and credential parameters. The endpoint is a string that identifies your resource..."
 - ✅ **Do**: Show code immediately: `with CosmosClient(endpoint, credential) as client:`
+
+---
+
+### Vally Efficiency Validation (REQUIRED - Phase 2)
+
+**During authoring, validate skill efficiency against vally framework before publication.**
+
+**1. Measure token count:**
+
+Use a token counter or model playground to measure each section. Compare to the Token Budget Guidelines targets above. If any section exceeds max, move content to `/references/`.
+
+**2. Run anti-pattern checklist:**
+
+- [ ] No exhaustive API reference (show 3-5 core methods, not 50)
+- [ ] No multiple solutions to one problem in SKILL.md
+- [ ] No beginner+intermediate+advanced mixed
+- [ ] No restating official docs (code first, link to microsoft-docs)
+- [ ] No verbose prose (examples first, minimal text)
+
+**3. Example count audit:**
+
+- [ ] 1-2 complete examples in core workflow (not 5+)
+- [ ] Feature table includes 3-5 core methods (not comprehensive API)
+- [ ] Max 1 example per best practice bullet
+
+**4. Frontmatter validation:**
+
+- [ ] `name` matches `.github/skills/<name>/SKILL.md`
+- [ ] `description` includes trigger keywords
+- [ ] `description` is ≤200 chars
+- [ ] Optional `benchmark_tokens` and `benchmark_quality` included
+
+**4b. Authentication guidance validation** (critical for all credentials):
+
+- [ ] If skill uses Azure Identity credentials, verify guidance against [official credential-chains docs](https://learn.microsoft.com/en-us/azure/developer/python/sdk/authentication/credential-chains#usage-guidance-for-defaultazurecredential)
+- [ ] Development guidance: OK to recommend `DefaultAzureCredential` (supports multiple dev credential types)
+- [ ] Production guidance: Must NOT recommend `DefaultAzureCredential` alone; recommend specific credential (e.g., `ManagedIdentityCredential`)
+- [ ] Link to `/references/auth-strategies.md` or official docs for production credential selection
+
+**5. Spot check:**
+
+- [ ] Can a user copy the core workflow and run it immediately?
+- [ ] Do all examples follow best practices (context managers, appropriate credentials)?
+- [ ] Are all environment variables documented?
+
+**Output:** After validation, annotate the skill header with measured token count:
+
+```markdown
+# Azure Service SDK
+
+<!-- Token Count: ~1180 (target: 1100, max: 1500) -->
+```
 
 ---
 
@@ -696,16 +773,42 @@ Skills are organized by **language** and **product area** in the `skills/` direc
 
 **Write bundled resources first**, then SKILL.md.
 
-**Frontmatter:**
+**Quality assurance before finalizing:**
+
+1. Measure section token counts as you write (use model playground token counter)
+2. Compare to Token Budget Guidelines targets
+3. Validate against anti-patterns checklist (see Anti-Patterns section)
+4. Extract to `/references/` if section exceeds max tokens
+5. Run Vally efficiency validation checklist (see Vally Efficiency Validation)
+6. Update frontmatter with `benchmark_tokens` and `benchmark_quality` metadata
+7. Add token count comment to skill header for future maintenance
+
+**Frontmatter (Enhanced with Benchmarking Metadata):**
 
 ```yaml
 ---
-name: skill-name-py
+name: azure-service-py
 description: |
   Azure Service SDK for Python. Use for [specific features].
   Triggers: "service name", "create resource", "specific operation".
+benchmark_tokens:
+  estimated: 1180
+  target: 1100
+  max: 1500
+benchmark_quality:
+  single_core_workflow: true
+  examples_focused: true
+  no_prose_bloat: true
+  anti_patterns_checked: true
 ---
 ```
+
+**Metadata fields:**
+
+- `benchmark_tokens.estimated` — Actual measured token count
+- `benchmark_tokens.target` — Target efficiency (typically 1100)
+- `benchmark_tokens.max` — Absolute ceiling (1500; split if exceeded)
+- `benchmark_quality.*` — Boolean checklist for validation
 
 ### Step 5: Categorize with Symlinks
 

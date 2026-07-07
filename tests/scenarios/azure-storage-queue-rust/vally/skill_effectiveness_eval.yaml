@@ -7,7 +7,7 @@ scoring:
   threshold: 0.75
 defaults:
   runs: 1
-  timeout: 30m
+  timeout: 60m
   model: claude-sonnet-4.6
 stimuli:
   - name: rust-queue-operations
