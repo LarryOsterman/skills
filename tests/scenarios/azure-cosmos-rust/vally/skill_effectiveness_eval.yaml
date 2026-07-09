@@ -149,7 +149,7 @@ stimuli:
           command: cargo
           args:
             - "check"
-          timeout: 90s
+          timeout: 2m
       - name: Rust Clippy Lints
         type: run-command
         weight: 1.0

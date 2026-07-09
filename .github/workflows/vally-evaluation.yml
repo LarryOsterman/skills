@@ -152,7 +152,7 @@ jobs:
           done
 
       - name: Run Vally evaluations
-        if: ${{ steps.specs.outputs.has_specs == 'true' && env.GH_TOKEN != '' }}
+        if: ${{ steps.specs.outputs.has_specs == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -170,10 +170,10 @@ jobs:
             --grader-plugin "$GITHUB_WORKSPACE/tests/scenarios/_shared/vally/grader-plugins/rust-cargo-build-failure" \
             --junit --output-dir vally-results --workers 2
 
-      - name: Skip eval when token is unavailable
-        if: ${{ steps.specs.outputs.has_specs == 'true' && env.GH_TOKEN == '' }}
-        run: |
-          echo "::warning::GH_TOKEN secret is not available. Skipping vally eval run and keeping lint-only validation."
+#      - name: Skip eval when token is unavailable
+#        if: ${{ steps.specs.outputs.has_specs == 'true' && env.GH_TOKEN == '' }}
+#        run: |
+#          echo "::warning::GH_TOKEN secret is not available. Skipping vally eval run and keeping lint-only validation."
 
       - name: Upload Vally artifacts
         if: always()
