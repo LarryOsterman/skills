@@ -29,10 +29,10 @@ permissions:
 jobs:
   vally:
     runs-on: ubuntu-latest
-    env:
-      # Authenticates the Copilot CLI process vally spawns (see the
-      # copilot-requests permission note above). GH_TOKEN takes
-      # precedence over GITHUB_TOKEN if both are set.
+    #    env:
+    # Authenticates the Copilot CLI process vally spawns (see the
+    # copilot-requests permission note above). GH_TOKEN takes
+    # precedence over GITHUB_TOKEN if both are set.
     #      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -170,10 +170,10 @@ jobs:
             --grader-plugin "$GITHUB_WORKSPACE/tests/scenarios/_shared/vally/grader-plugins/rust-cargo-build-failure" \
             --junit --output-dir vally-results --workers 2
 
-#      - name: Skip eval when token is unavailable
-#        if: ${{ steps.specs.outputs.has_specs == 'true' && env.GH_TOKEN == '' }}
-#        run: |
-#          echo "::warning::GH_TOKEN secret is not available. Skipping vally eval run and keeping lint-only validation."
+      #      - name: Skip eval when token is unavailable
+      #        if: ${{ steps.specs.outputs.has_specs == 'true' && env.GH_TOKEN == '' }}
+      #        run: |
+      #          echo "::warning::GH_TOKEN secret is not available. Skipping vally eval run and keeping lint-only validation."
 
       - name: Upload Vally artifacts
         if: always()
