@@ -55,6 +55,9 @@ jobs:
       - name: Verify Vally CLI
         run: vally --version
 
+      - name: Verify copilot CLI
+        run: copilot -p "What is the day of the week?"
+
       - name: Resolve eval specs
         id: specs
         shell: bash
