@@ -46,6 +46,9 @@ jobs:
       - name: Install Vally CLI
         run: npm install -g @microsoft/vally-cli@0.6.0
 
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
+
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -56,6 +59,7 @@ jobs:
         run: vally --version
 
       - name: Verify copilot CLI
+        shell: bash
         run: copilot -p "What is the day of the week?"
 
       - name: Resolve eval specs
