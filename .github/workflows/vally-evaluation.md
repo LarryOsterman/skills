@@ -73,8 +73,10 @@ Run Vally lint + eval over affected `tests/scenarios/**/vally/**` eval specs.
 2. Install Node.js 24.
 3. Install tools:
    - `npm install -g @microsoft/vally-cli@0.7.0`
+   - `npm install -g @github/copilot`
 4. Verify tools:
    - `vally --version`
+   - `copilot -p "what is the current day?"`
 
 5. Resolve eval specs using this logic: for `workflow_dispatch`, use `eval_spec` when provided, otherwise include all `*/vally/eval.yaml|eval.yml` under `tests/scenarios` excluding `tests/scenarios/_shared`; for `pull_request`, diff `${{ github.event.pull_request.base.sha }}` to `${{ github.event.pull_request.head.sha }}` and collect affected scenario vally dirs; for `push`, diff `${{ github.event.before }}` to `${{ github.event.after }}` and if `before` is empty/all-zero include all specs; if any file under `tests/scenarios/_shared/vally/` changed, include all scenario eval specs (excluding `_shared`).
 
