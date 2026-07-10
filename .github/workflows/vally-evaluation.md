@@ -83,6 +83,7 @@ Run Vally lint + eval over affected `tests/scenarios/**/vally/**` eval specs.
 6. Build shared grader plugin:
    - Directory: `tests/scenarios/_shared/vally/grader-plugins/rust-cargo-build-failure`
    - Commands: `npm install` and `npm run build`
+   - Treat the grader build failure as a fatal error.
 
 7. Lint each resolved spec:
    - `vally lint --eval-spec <spec> --grader-plugin <plugin-dir> --strict`
