@@ -88,10 +88,13 @@ Run Vally lint + eval over affected `tests/scenarios/**/vally/**` eval specs.
 7. Lint each resolved spec:
    - `vally lint --eval-spec <spec> --grader-plugin <plugin-dir> --strict`
 
-8. Run eval for all resolved specs:
+8. Prepare Copilot auth env for Vally evaluator:
+   - `if [ -n "${COPILOT_TOKEN:-}" ] && [ -z "${GITHUB_COPILOT_API_TOKEN:-}" ]; then export GITHUB_COPILOT_API_TOKEN="$COPILOT_TOKEN"; fi`
+
+9. Run eval for all resolved specs:
    - `vally eval -e <spec1> -e <spec2> ... --grader-plugin <plugin-dir> --junit --output-dir vally-results --workers 2`
 
-9. Upload `vally-results` artifacts if present.
+10. Upload `vally-results` artifacts if present.
 
 ## Output Expectations
 
@@ -103,5 +106,5 @@ Run Vally lint + eval over affected `tests/scenarios/**/vally/**` eval specs.
 
 ## Notes
 
-- Prefer `COPILOT_GITHUB_TOKEN` if provided; otherwise allow fallback token behavior used by Copilot CLI.
+- For Vally's Copilot SDK evaluator path, map `COPILOT_TOKEN` to `GITHUB_COPILOT_API_TOKEN` when needed.
 - Do not create pull requests or issues in this workflow.
