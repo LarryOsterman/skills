@@ -1,4 +1,4 @@
-name: Vally Evaluation
+name: Vally Workflow Evaluation
 
 on:
   pull_request_target:
