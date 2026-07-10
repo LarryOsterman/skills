@@ -21,6 +21,8 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  copilot-requests: write
+  
 strict: true
 network:
   allowed:
@@ -70,7 +72,7 @@ Run Vally lint + eval over affected `tests/scenarios/**/vally/**` eval specs.
 1. Checkout repository with full history (`fetch-depth: 0`).
 2. Install Node.js 24.
 3. Install tools:
-   - `npm install -g @microsoft/vally-cli@0.6.0`
+   - `npm install -g @microsoft/vally-cli@0.7.0`
    - `npm install -g @github/copilot`
 4. Verify tools:
    - `vally --version`
