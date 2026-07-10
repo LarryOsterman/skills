@@ -1,7 +1,7 @@
 name: Vally Evaluation
 
 on:
-  pull_request:
+  pull_request_target:
     paths:
       - "tests/scenarios/**/vally/**"
       - ".github/workflows/vally-evaluation.yml"
@@ -60,12 +60,13 @@ jobs:
 
       - name: Verify copilot CLI
         shell: bash
-        env:
-          # Authenticates the Copilot CLI process vally spawns (see the
-          # copilot-requests permission note above). GH_TOKEN takes
-          # precedence over GITHUB_TOKEN if both are set.
-          GH_TOKEN: ${{ github.token }}
-        run: copilot -p "What is the day of the week?"
+        #        env:
+        # Authenticates the Copilot CLI process vally spawns (see the
+        # copilot-requests permission note above). GH_TOKEN takes
+        # precedence over GITHUB_TOKEN if both are set.
+        #          GH_TOKEN: ${{ github.token }}
+        run: |
+          copilot -p "What is the day of the week?"
 
       - name: Resolve eval specs
         id: specs
@@ -151,11 +152,11 @@ jobs:
 
       - name: Lint Vally eval specs
         if: ${{ steps.specs.outputs.has_specs == 'true' }}
-        env:
-          # Authenticates the Copilot CLI process vally spawns (see the
-          # copilot-requests permission note above). GH_TOKEN takes
-          # precedence over GITHUB_TOKEN if both are set.
-          GH_TOKEN: ${{ github.token }}
+        #        env:
+        # Authenticates the Copilot CLI process vally spawns (see the
+        # copilot-requests permission note above). GH_TOKEN takes
+        # precedence over GITHUB_TOKEN if both are set.
+        #          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
