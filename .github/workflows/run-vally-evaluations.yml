@@ -4,12 +4,12 @@ on:
   pull_request_target:
     paths:
       - "tests/scenarios/**/vally/**"
-      - ".github/workflows/vally-evaluation.yml"
+      - ".github/workflows/run-vally-evaluations.yml"
   push:
     branches: [main]
     paths:
       - "tests/scenarios/**/vally/**"
-      - ".github/workflows/vally-evaluation.yml"
+      - ".github/workflows/run-vally-evaluations.yml"
   workflow_dispatch:
     inputs:
       eval_spec:
@@ -29,11 +29,11 @@ permissions:
 jobs:
   vally:
     runs-on: ubuntu-latest
-    #    env:
-    # Authenticates the Copilot CLI process vally spawns (see the
-    # copilot-requests permission note above). GH_TOKEN takes
-    # precedence over GITHUB_TOKEN if both are set.
-    #      GH_TOKEN: ${{ github.token }}
+    env:
+      # Authenticates Copilot CLI and Vally's Copilot SDK evaluator path.
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_COPILOT_API_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -113,8 +113,8 @@ jobs:
             else
               find tests/scenarios -type f \( -name 'eval.yaml' -o -name 'eval.yml' \) -path '*/vally/*' | sort -u > "$specs_file"
             fi
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            collect_from_changed_dirs "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | sort -u > "$specs_file"
+          elif [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            collect_from_changed_dirs "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort -u > "$specs_file"
           else
             base_sha="${{ github.event.before }}"
             if [ -z "$base_sha" ] || [ "$base_sha" = '0000000000000000000000000000000000000000' ]; then
